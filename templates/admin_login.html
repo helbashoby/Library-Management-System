@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Admin Login | Library Management System{% endblock %}
+
+{% block content %}
+<section class="auth-wrap">
+    <div class="card auth-card">
+        <p class="eyebrow">Administrator Portal</p>
+        <h1>Admin Login</h1>
+        <p class="muted">Enter your admin ID and password to manage library records.</p>
+
+        <form id="admin-login-form" class="form" method="post" action="/api/admin/login">
+            <label for="admin_id">Admin ID</label>
+            <input type="text" id="admin_id" name="admin_id" placeholder="e.g. 1" required>
+
+            <label for="password">Password</label>
+            <input type="password" id="password" name="password" placeholder="Enter password" required>
+
+            <button type="submit" class="btn btn-primary btn-full">Login</button>
+        </form>
+
+        <a class="back-link" href="{{ url_for('home') }}">Back to home</a>
+    </div>
+</section>
+{% endblock %}

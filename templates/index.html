@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Home | Library Management System{% endblock %}
+
+{% block content %}
+<section class="hero">
+    <p class="eyebrow">College Library</p>
+    <h1>Library Management System</h1>
+    <p class="lead">
+        A digital library application that helps students check book availability
+        and helps librarians manage and organize library records.
+    </p>
+    <div class="hero-actions">
+        <a class="btn btn-primary" href="{{ url_for('student_login') }}">Student Login</a>
+        <a class="btn btn-secondary" href="{{ url_for('admin_login') }}">Admin Login</a>
+    </div>
+</section>
+
+<section class="feature-grid">
+    <article class="card">
+        <h2>For Students</h2>
+        <p>Search books by title, author, category, or publisher. Check available copies and view your issued books.</p>
+    </article>
+    <article class="card">
+        <h2>For Administrators</h2>
+        <p>Manage books, issue and return records, and keep shelf locations and availability up to date.</p>
+    </article>
+    <article class="card">
+        <h2>Accurate Records</h2>
+        <p>Every issue stores issue date, due date, and return date, linked to one student and one book.</p>
+    </article>
+</section>
+{% endblock %}

@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Library Management System{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <header class="site-header">
+        <div class="header-inner">
+            <a class="brand" href="{{ url_for('home') }}">
+                <span class="brand-mark">LMS</span>
+                <span class="brand-text">
+                    <strong>College Library</strong>
+                    <small>Database Management System</small>
+                </span>
+            </a>
+            {% block header_actions %}{% endblock %}
+        </div>
+    </header>
+
+    <main class="site-main">
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="site-footer">
+        <p>Library Database Management System &middot; B.Tech DBMS Project</p>
+        <p>Adithyan C &middot; Anagha E S &middot; Helba Shoby &middot; Nikhil Chandran</p>
+    </footer>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>

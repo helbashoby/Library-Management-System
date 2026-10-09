@@ -1,0 +1,298 @@
+{% extends "base.html" %}
+
+{% block title %}Student Dashboard | Library Management System{% endblock %}
+
+{% block header_actions %} <a class="btn btn-ghost" href="{{ url_for('student_logout') }}">Logout</a>
+{% endblock %}
+
+{% block content %}
+
+<section class="page-head">
+    <div>
+        <p class="eyebrow">Student Dashboard</p>
+        <h1>Welcome, {{ student_name }}</h1>
+        <p class="muted">
+            Search the catalogue and review the books currently issued to you.
+        </p>
+    </div>
+</section>
+
+<!-- Search Books -->
+
+<section class="card">
+
+```
+<h2>Search Books</h2>
+
+<form id="book-search-form" class="form form-inline">
+
+    <div>
+        <label for="search_by">Search by</label>
+
+        <select id="search_by" name="search_by">
+            <option value="book_name">Book name</option>
+            <option value="author_name">Author name</option>
+            <option value="category">Category</option>
+            <option value="publisher">Publisher</option>
+        </select>
+    </div>
+
+    <div>
+        <label for="q">Keyword</label>
+
+        <input
+            type="text"
+            id="q"
+            name="q"
+            placeholder="Type a title, author, category, or publisher"
+        >
+    </div>
+
+    <div class="search-submit">
+        <button type="submit" class="btn btn-primary">
+            Search
+        </button>
+    </div>
+
+</form>
+
+<div class="table-wrap">
+
+    <table class="data-table">
+
+        <thead>
+            <tr>
+                <th>Book ID</th>
+                <th>Book Name</th>
+                <th>Author</th>
+                <th>Category</th>
+                <th>Publisher</th>
+                <th>Available Copies</th>
+                <th>Shelf Location</th>
+            </tr>
+        </thead>
+
+        <tbody id="book-results">
+
+            <tr>
+                <td colspan="7">
+                    Search for a book to see results.
+                </td>
+            </tr>
+
+        </tbody>
+
+    </table>
+
+</div>
+```
+
+</section>
+
+<!-- My Issued Books -->
+
+<section class="card">
+
+```
+<h2>My Issued Books</h2>
+
+<div class="table-wrap">
+
+    <table class="data-table">
+
+        <thead>
+            <tr>
+                <th>Issue ID</th>
+                <th>Book Name</th>
+                <th>Issue Date</th>
+                <th>Due Date</th>
+                <th>Return Date</th>
+            </tr>
+        </thead>
+
+        <tbody id="issued-books-results">
+
+            <tr>
+                <td colspan="5">
+                    Loading issued books...
+                </td>
+            </tr>
+
+        </tbody>
+
+    </table>
+
+</div>
+```
+
+</section>
+
+<script>
+
+/* =========================
+   BOOK SEARCH
+========================= */
+
+document.getElementById("book-search-form").addEventListener("submit", async function(event) {
+
+    event.preventDefault();
+
+    const searchBy = document.getElementById("search_by").value;
+    const keyword = document.getElementById("q").value.trim();
+
+    const resultsBody = document.getElementById("book-results");
+
+    resultsBody.innerHTML = `
+        <tr>
+            <td colspan="7">Searching...</td>
+        </tr>
+    `;
+
+    try {
+
+        const response = await fetch(
+            `/api/books/search?search_by=${encodeURIComponent(searchBy)}&q=${encodeURIComponent(keyword)}`
+        );
+
+        const books = await response.json();
+
+        if (!response.ok) {
+            throw new Error(books.message || "Search failed");
+        }
+
+        if (books.length === 0) {
+
+            resultsBody.innerHTML = `
+                <tr>
+                    <td colspan="7">No books found.</td>
+                </tr>
+            `;
+
+            return;
+        }
+
+        resultsBody.innerHTML = books.map(function(book) {
+
+            return `
+                <tr>
+                    <td>${book.book_id}</td>
+                    <td>${book.book_name}</td>
+                    <td>${book.author_name}</td>
+                    <td>${book.category}</td>
+                    <td>${book.publisher}</td>
+                    <td>${book.available_copy}</td>
+                    <td>${book.shelf_loc || "—"}</td>
+                </tr>
+            `;
+
+        }).join("");
+
+    } catch (error) {
+
+        resultsBody.innerHTML = `
+            <tr>
+                <td colspan="7">
+                    Unable to search books.
+                </td>
+            </tr>
+        `;
+
+        console.error(error);
+    }
+
+});
+
+
+/* =========================
+   ISSUED BOOKS
+========================= */
+
+async function loadIssuedBooks() {
+
+    const resultsBody = document.getElementById("issued-books-results");
+
+    try {
+
+        const response = await fetch("/api/student/issued-books");
+
+        const books = await response.json();
+
+        if (!response.ok) {
+            throw new Error(
+                books.message || "Failed to load issued books"
+            );
+        }
+
+        if (books.length === 0) {
+
+            resultsBody.innerHTML = `
+                <tr>
+                    <td colspan="5">
+                        No books are currently issued.
+                    </td>
+                </tr>
+            `;
+
+            return;
+        }
+
+        resultsBody.innerHTML = books.map(function(book) {
+
+            return `
+                <tr>
+                    <td>${book.issue_id}</td>
+                    <td>${book.book_name}</td>
+                    <td>${formatDate(book.issue_date)}</td>
+                    <td>${formatDate(book.due_date)}</td>
+                    <td>
+                        ${book.return_date
+                            ? formatDate(book.return_date)
+                            : "Not returned"}
+                    </td>
+                </tr>
+            `;
+
+        }).join("");
+
+    } catch (error) {
+
+        resultsBody.innerHTML = `
+            <tr>
+                <td colspan="5">
+                    Unable to load issued books.
+                </td>
+            </tr>
+        `;
+
+        console.error(error);
+    }
+
+}
+
+
+/* =========================
+   DATE FORMAT
+========================= */
+
+function formatDate(dateString) {
+
+    if (!dateString) {
+        return "—";
+    }
+
+    const date = new Date(dateString);
+
+    return date.toISOString().split("T")[0];
+
+}
+
+
+/* =========================
+   LOAD ISSUED BOOKS
+========================= */
+
+loadIssuedBooks();
+
+</script>
+
+{% endblock %}

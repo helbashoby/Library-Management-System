@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+{% block title %}Admin Dashboard | Library Management System{% endblock %}
+
+{% block header_actions %}
+<a class="btn btn-ghost" href="{{ url_for('home') }}">Logout</a>
+{% endblock %}
+
+{% block content %}
+<section class="page-head">
+    <div>
+        <p class="eyebrow">Administrator Dashboard</p>
+        <h1>Welcome, Admin</h1>
+        <p class="muted">Manage books, issue copies to students, and record returns.</p>
+    </div>
+</section>
+
+<section class="card">
+    <h2>Add Book</h2>
+    <form id="add-book-form" class="form form-grid" method="post" action="/api/books">
+        <div>
+            <label for="book_name">Book Name</label>
+            <input type="text" id="book_name" name="book_name" required>
+        </div>
+        <div>
+            <label for="author_name">Author Name</label>
+            <input type="text" id="author_name" name="author_name" required>
+        </div>
+        <div>
+            <label for="available_copy">Available Copies</label>
+            <input type="number" id="available_copy" name="available_copy" min="0" required>
+        </div>
+        <div>
+            <label for="shelf_loc">Shelf Location</label>
+            <input type="text" id="shelf_loc" name="shelf_loc" placeholder="e.g. A-12">
+        </div>
+        <div>
+            <label for="category_id">Category ID</label>
+            <input type="number" id="category_id" name="category_id" min="1" required>
+        </div>
+        <div>
+            <label for="publisher_id">Publisher ID</label>
+            <input type="number" id="publisher_id" name="publisher_id" min="1" required>
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Add Book</button>
+        </div>
+    </form>
+</section>
+
+<section class="card">
+    <h2>View Books</h2>
+    <div class="table-wrap">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Book ID</th>
+                    <th>Book Name</th>
+                    <th>Author</th>
+                    <th>Available Copies</th>
+                    <th>Shelf</th>
+                    <th>Category ID</th>
+                    <th>Publisher ID</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>1</td>
+                    <td>Database System Concepts</td>
+                    <td>Abraham Silberschatz</td>
+                    <td>4</td>
+                    <td>A-12</td>
+                    <td>1</td>
+                    <td>1</td>
+                </tr>
+                <tr>
+                    <td>6</td>
+                    <td>Operating System Concepts</td>
+                    <td>Abraham Silberschatz</td>
+                    <td>2</td>
+                    <td>A-14</td>
+                    <td>1</td>
+                    <td>2</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    <p class="hint">Sample catalogue for layout only.</p>
+</section>
+
+<div class="two-col">
+    <section class="card">
+        <h2>Issue Book</h2>
+        <form id="issue-book-form" class="form" method="post" action="/api/issues">
+            <label for="issue_student_id">Student ID</label>
+            <input type="number" id="issue_student_id" name="student_id" min="1" required>
+
+            <label for="issue_book_id">Book ID</label>
+            <input type="number" id="issue_book_id" name="book_id" min="1" required>
+
+            <label for="issue_admin_id">Admin ID</label>
+            <input type="number" id="issue_admin_id" name="admin_id" min="1" required>
+
+            <label for="issue_date">Issue Date</label>
+            <input type="date" id="issue_date" name="issue_date" required>
+
+            <label for="due_date">Due Date</label>
+            <input type="date" id="due_date" name="due_date" required>
+
+            <button type="submit" class="btn btn-primary btn-full">Issue Book</button>
+        </form>
+    </section>
+
+    <section class="card">
+        <h2>Return Book</h2>
+        <form id="return-book-form" class="form" method="post" action="/api/issues/return">
+            <label for="issue_id">Issue ID</label>
+            <input type="number" id="issue_id" name="issue_id" min="1" required>
+
+            <label for="return_date">Return Date</label>
+            <input type="date" id="return_date" name="return_date" required>
+
+            <button type="submit" class="btn btn-secondary btn-full">Record Return</button>
+        </form>
+    </section>
+</div>
+
+<section class="card">
+    <h2>Issue Records</h2>
+    <div class="table-wrap">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Issue ID</th>
+                    <th>Student ID</th>
+                    <th>Book ID</th>
+                    <th>Admin ID</th>
+                    <th>Issue Date</th>
+                    <th>Due Date</th>
+                    <th>Return Date</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>1</td>
+                    <td>1</td>
+                    <td>1</td>
+                    <td>1</td>
+                    <td>2026-09-01</td>
+                    <td>2026-09-15</td>
+                    <td>—</td>
+                </tr>
+                <tr>
+                    <td>2</td>
+                    <td>2</td>
+                    <td>2</td>
+                    <td>1</td>
+                    <td>2026-09-05</td>
+                    <td>2026-09-19</td>
+                    <td>2026-09-18</td>
+                </tr>
+                <tr>
+                    <td>4</td>
+                    <td>3</td>
+                    <td>6</td>
+                    <td>1</td>
+                    <td>2026-08-20</td>
+                    <td>2026-09-03</td>
+                    <td>—</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}
