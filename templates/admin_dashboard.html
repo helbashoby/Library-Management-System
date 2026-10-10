@@ -2,21 +2,23 @@
 {% block title %}Admin Dashboard | Library Management System{% endblock %}
 
 {% block header_actions %}
-<a class="btn btn-ghost" href="{{ url_for('home') }}">Logout</a>
+<a class="btn btn-ghost" href="{{ url_for('admin_logout') }}">Logout</a>
 {% endblock %}
 
 {% block content %}
 <section class="page-head">
     <div>
         <p class="eyebrow">Administrator Dashboard</p>
-        <h1>Welcome, Admin</h1>
-        <p class="muted">Manage books, issue copies to students, and record returns.</p>
+        <h1>Welcome, {{ admin_name or 'Admin' }}</h1>
+        <p class="muted">{{ admin_phone or 'Library Administrator' }} &middot; Manage books, issue copies to students, and record returns.</p>
     </div>
 </section>
 
+<div id="form-feedback" class="form-message" aria-live="polite"></div>
+
 <section class="card">
     <h2>Add Book</h2>
-    <form id="add-book-form" class="form form-grid" method="post" action="/api/books">
+    <form id="add-book-form" class="form form-grid">
         <div>
             <label for="book_name">Book Name</label>
             <input type="text" id="book_name" name="book_name" required>
@@ -24,6 +26,10 @@
         <div>
             <label for="author_name">Author Name</label>
             <input type="text" id="author_name" name="author_name" required>
+        </div>
+        <div>
+            <label for="total_copy">Total Copies</label>
+            <input type="number" id="total_copy" name="total_copy" min="1" required>
         </div>
         <div>
             <label for="available_copy">Available Copies</label>
@@ -34,12 +40,12 @@
             <input type="text" id="shelf_loc" name="shelf_loc" placeholder="e.g. A-12">
         </div>
         <div>
-            <label for="category_id">Category ID</label>
-            <input type="number" id="category_id" name="category_id" min="1" required>
+            <label for="category_id">Category</label>
+            <select id="category_id" name="category_id" required></select>
         </div>
         <div>
-            <label for="publisher_id">Publisher ID</label>
-            <input type="number" id="publisher_id" name="publisher_id" min="1" required>
+            <label for="publisher_id">Publisher</label>
+            <select id="publisher_id" name="publisher_id" required></select>
         </div>
         <div class="form-actions">
             <button type="submit" class="btn btn-primary">Add Book</button>
@@ -57,48 +63,30 @@
                     <th>Book Name</th>
                     <th>Author</th>
                     <th>Available Copies</th>
+                    <th>Total Copies</th>
                     <th>Shelf</th>
-                    <th>Category ID</th>
-                    <th>Publisher ID</th>
+                    <th>Category</th>
+                    <th>Publisher</th>
                 </tr>
             </thead>
-            <tbody>
+            <tbody id="book-table-body">
                 <tr>
-                    <td>1</td>
-                    <td>Database System Concepts</td>
-                    <td>Abraham Silberschatz</td>
-                    <td>4</td>
-                    <td>A-12</td>
-                    <td>1</td>
-                    <td>1</td>
-                </tr>
-                <tr>
-                    <td>6</td>
-                    <td>Operating System Concepts</td>
-                    <td>Abraham Silberschatz</td>
-                    <td>2</td>
-                    <td>A-14</td>
-                    <td>1</td>
-                    <td>2</td>
+                    <td colspan="8">Loading books...</td>
                 </tr>
             </tbody>
         </table>
     </div>
-    <p class="hint">Sample catalogue for layout only.</p>
 </section>
 
 <div class="two-col">
     <section class="card">
         <h2>Issue Book</h2>
-        <form id="issue-book-form" class="form" method="post" action="/api/issues">
-            <label for="issue_student_id">Student ID</label>
-            <input type="number" id="issue_student_id" name="student_id" min="1" required>
+        <form id="issue-book-form" class="form">
+            <label for="issue_student_id">Student</label>
+            <select id="issue_student_id" name="student_id" required></select>
 
-            <label for="issue_book_id">Book ID</label>
-            <input type="number" id="issue_book_id" name="book_id" min="1" required>
-
-            <label for="issue_admin_id">Admin ID</label>
-            <input type="number" id="issue_admin_id" name="admin_id" min="1" required>
+            <label for="issue_book_id">Book</label>
+            <select id="issue_book_id" name="book_id" required></select>
 
             <label for="issue_date">Issue Date</label>
             <input type="date" id="issue_date" name="issue_date" required>
@@ -112,9 +100,9 @@
 
     <section class="card">
         <h2>Return Book</h2>
-        <form id="return-book-form" class="form" method="post" action="/api/issues/return">
-            <label for="issue_id">Issue ID</label>
-            <input type="number" id="issue_id" name="issue_id" min="1" required>
+        <form id="return-book-form" class="form">
+            <label for="issue_id">Issue Record</label>
+            <select id="issue_id" name="issue_id" required></select>
 
             <label for="return_date">Return Date</label>
             <input type="date" id="return_date" name="return_date" required>
@@ -131,44 +119,185 @@
             <thead>
                 <tr>
                     <th>Issue ID</th>
-                    <th>Student ID</th>
-                    <th>Book ID</th>
-                    <th>Admin ID</th>
+                    <th>Student</th>
+                    <th>Department</th>
+                    <th>Book</th>
+                    <th>Admin</th>
                     <th>Issue Date</th>
                     <th>Due Date</th>
                     <th>Return Date</th>
+                    <th>Status</th>
                 </tr>
             </thead>
-            <tbody>
+            <tbody id="issue-table-body">
                 <tr>
-                    <td>1</td>
-                    <td>1</td>
-                    <td>1</td>
-                    <td>1</td>
-                    <td>2026-09-01</td>
-                    <td>2026-09-15</td>
-                    <td>—</td>
-                </tr>
-                <tr>
-                    <td>2</td>
-                    <td>2</td>
-                    <td>2</td>
-                    <td>1</td>
-                    <td>2026-09-05</td>
-                    <td>2026-09-19</td>
-                    <td>2026-09-18</td>
-                </tr>
-                <tr>
-                    <td>4</td>
-                    <td>3</td>
-                    <td>6</td>
-                    <td>1</td>
-                    <td>2026-08-20</td>
-                    <td>2026-09-03</td>
-                    <td>—</td>
+                    <td colspan="9">Loading issue records...</td>
                 </tr>
             </tbody>
         </table>
     </div>
 </section>
+
+<script>
+const formFeedback = document.getElementById('form-feedback');
+
+function setFeedback(message, isError = false) {
+    formFeedback.textContent = message || ' ';
+    formFeedback.className = 'form-message' + (isError ? ' error' : ' success');
+}
+
+function createSelectOption(value, label) {
+    const option = document.createElement('option');
+    option.value = value;
+    option.textContent = label;
+    return option;
+}
+
+function createTableRow(cells) {
+    const row = document.createElement('tr');
+    cells.forEach(function (cellValue) {
+        const cell = document.createElement('td');
+        cell.textContent = cellValue;
+        row.appendChild(cell);
+    });
+    return row;
+}
+
+async function loadOptions() {
+    const categorySelect = document.getElementById('category_id');
+    const publisherSelect = document.getElementById('publisher_id');
+    const studentSelect = document.getElementById('issue_student_id');
+
+    const response = await fetch('/api/admin/book-options');
+    const data = await response.json();
+
+    categorySelect.innerHTML = '';
+    publisherSelect.innerHTML = '';
+    studentSelect.innerHTML = '';
+
+    if (!data.categories || !data.publishers || !data.students) {
+        return;
+    }
+
+    categorySelect.appendChild(createSelectOption('', 'Select a category'));
+    data.categories.forEach(function (category) {
+        categorySelect.appendChild(createSelectOption(category.category_id, category.category_name));
+    });
+
+    publisherSelect.appendChild(createSelectOption('', 'Select a publisher'));
+    data.publishers.forEach(function (publisher) {
+        publisherSelect.appendChild(createSelectOption(publisher.publisher_id, publisher.publisher_name));
+    });
+
+    studentSelect.appendChild(createSelectOption('', 'Select a student'));
+    data.students.forEach(function (student) {
+        studentSelect.appendChild(createSelectOption(student.student_id, student.student_name + ' (' + student.student_id + ')'));
+    });
+}
+
+async function loadBooks() {
+    const bookTableBody = document.getElementById('book-table-body');
+    const bookSelect = document.getElementById('issue_book_id');
+    const response = await fetch('/api/admin/books');
+    const books = await response.json();
+
+    bookTableBody.innerHTML = '';
+    bookSelect.innerHTML = '<option value="">Select a book</option>';
+
+    if (!books || books.length === 0) {
+        bookTableBody.appendChild(createTableRow(['No books found.']));
+        return;
+    }
+
+    books.forEach(function (book) {
+        bookTableBody.appendChild(createTableRow([
+            book.book_id,
+            book.book_name,
+            book.author_name,
+            book.available_copy,
+            book.total_copy,
+            book.shelf_loc || '—',
+            book.category_name,
+            book.publisher_name,
+        ]));
+        bookSelect.appendChild(createSelectOption(book.book_id, book.book_name + ' (' + book.book_id + ')'));
+    });
+}
+
+async function loadIssueRecords() {
+    const issueTableBody = document.getElementById('issue-table-body');
+    const issueSelect = document.getElementById('issue_id');
+    const response = await fetch('/api/admin/issues');
+    const issues = await response.json();
+
+    issueTableBody.innerHTML = '';
+    issueSelect.innerHTML = '<option value="">Select an issue</option>';
+
+    if (!issues || issues.length === 0) {
+        issueTableBody.appendChild(createTableRow(['No issue records found.']));
+        return;
+    }
+
+    issues.forEach(function (issue) {
+        issueTableBody.appendChild(createTableRow([
+            issue.issue_id,
+            issue.student_name,
+            issue.department,
+            issue.book_name,
+            issue.admin_name,
+            issue.issue_date,
+            issue.due_date,
+            issue.return_date || '—',
+            issue.status,
+        ]));
+        if (!issue.return_date) {
+            issueSelect.appendChild(createSelectOption(issue.issue_id, 'Issue #' + issue.issue_id + ' - ' + issue.student_name));
+        }
+    });
+}
+
+async function refreshDashboard() {
+    await loadOptions();
+    await loadBooks();
+    await loadIssueRecords();
+}
+
+document.getElementById('add-book-form').addEventListener('submit', async function (event) {
+    event.preventDefault();
+    const formData = new FormData(event.target);
+    const response = await fetch('/api/books', { method: 'POST', body: formData });
+    const result = await response.json();
+    setFeedback(result.message || 'Operation completed.', !response.ok);
+    if (response.ok) {
+        event.target.reset();
+        refreshDashboard();
+    }
+});
+
+document.getElementById('issue-book-form').addEventListener('submit', async function (event) {
+    event.preventDefault();
+    const formData = new FormData(event.target);
+    const response = await fetch('/api/issues', { method: 'POST', body: formData });
+    const result = await response.json();
+    setFeedback(result.message || 'Issue action completed.', !response.ok);
+    if (response.ok) {
+        event.target.reset();
+        refreshDashboard();
+    }
+});
+
+document.getElementById('return-book-form').addEventListener('submit', async function (event) {
+    event.preventDefault();
+    const formData = new FormData(event.target);
+    const response = await fetch('/api/issues/return', { method: 'POST', body: formData });
+    const result = await response.json();
+    setFeedback(result.message || 'Return action completed.', !response.ok);
+    if (response.ok) {
+        event.target.reset();
+        refreshDashboard();
+    }
+});
+
+refreshDashboard();
+</script>
 {% endblock %}

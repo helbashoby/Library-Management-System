@@ -180,6 +180,27 @@ p { margin: 0 0 1rem; line-height: 1.55; }
     margin: 0.75rem 0 0;
 }
 
+.form-error,
+.form-message {
+    border-radius: 8px;
+    padding: 0.8rem 0.9rem;
+    margin-bottom: 1rem;
+    font-size: 0.92rem;
+}
+
+.form-error,
+.form-message.error {
+    background: #fbe7e8;
+    color: #8d2530;
+    border: 1px solid #e7b9bf;
+}
+
+.form-message.success {
+    background: #eaf7ef;
+    color: #184e2a;
+    border: 1px solid #b8d9c1;
+}
+
 .page-head {
     margin-bottom: 1.25rem;
 }
