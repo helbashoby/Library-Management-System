@@ -149,35 +149,57 @@ def student_login_api():
 def search_books():
     search_by = request.args.get("search_by", "book_name")
     keyword = request.args.get("q", "").strip()
-
     allowed_fields = {
-        "book_name": "b.book_name",
-        "author_name": "b.author_name",
-        "category": "c.category_name",
-        "publisher": "p.publisher_name"
+        "book_name": "b2.book_name",
+        "author_name": "ba2.author_name",
+        "category": "c2.category_name",
+        "publisher": "p2.publisher_name"
     }
 
-    field = allowed_fields.get(search_by, "b.book_name")
+    field = allowed_fields.get(search_by, "b2.book_name")
+
 
     try:
         conn = get_connection()
         cursor = conn.cursor(dictionary=True)
-
         query = f"""
             SELECT
                 b.book_id,
                 b.book_name,
-                b.author_name,
+                GROUP_CONCAT(
+                    DISTINCT ba.author_name
+                    ORDER BY ba.author_name
+                    SEPARATOR ', '
+                ) AS author_name,
                 c.category_name AS category,
                 p.publisher_name AS publisher,
                 b.available_copy,
                 b.shelf_loc
             FROM book b
+            LEFT JOIN book_author ba ON ba.book_id = b.book_id
             JOIN category c ON b.category_id = c.category_id
             JOIN publisher p ON b.publisher_id = p.publisher_id
-            WHERE {field} LIKE %s
+            WHERE b.book_id IN (
+                SELECT DISTINCT b2.book_id
+                FROM book b2
+                LEFT JOIN book_author ba2
+                    ON ba2.book_id = b2.book_id
+                JOIN category c2
+                    ON b2.category_id = c2.category_id
+                JOIN publisher p2
+                    ON b2.publisher_id = p2.publisher_id
+                WHERE {field} LIKE %s
+            )
+            GROUP BY
+                b.book_id,
+                b.book_name,
+                c.category_name,
+                p.publisher_name,
+                b.available_copy,
+                b.shelf_loc
             ORDER BY b.book_id
         """
+
 
         cursor.execute(query, (f"%{keyword}%",))
         books = cursor.fetchall()
@@ -215,7 +237,11 @@ def student_issued_books():
                 b.book_name,
                 i.issue_date,
                 i.due_date,
-                i.return_date
+                i.return_date,
+                CASE
+                    WHEN i.return_date IS NULL THEN 'Issued'
+                    ELSE 'Returned'
+                END AS status
             FROM issue i
             JOIN book b ON i.book_id = b.book_id
             WHERE i.student_id = %s
@@ -230,12 +256,12 @@ def student_issued_books():
 
         return jsonify(issued_books)
 
-    except Exception as error:
+    except Exception:
         return jsonify({
             "status": "error",
-            "message": "Could not load issued books.",
-            "error": str(error)
+            "message": "Could not load issued books."
         }), 500
+
 
 
 @app.route("/student-dashboard")
@@ -362,6 +388,7 @@ def admin_book_options():
         _close_db_resources(cursor, conn)
 
 
+
 @app.route("/api/admin/books")
 @admin_required
 def admin_books():
@@ -372,22 +399,42 @@ def admin_books():
         cursor = conn.cursor(dictionary=True)
         cursor.execute(
             """
-            SELECT b.book_id, b.book_name, b.author_name,
-                   b.available_copy, b.total_copy, b.shelf_loc,
-                   c.category_name, p.publisher_name
+            SELECT
+                b.book_id,
+                b.book_name,
+                GROUP_CONCAT(
+                    DISTINCT ba.author_name
+                    ORDER BY ba.author_name
+                    SEPARATOR ', '
+                ) AS author_name,
+                b.available_copy,
+                b.total_copy,
+                b.shelf_loc,
+                c.category_name,
+                p.publisher_name
             FROM book b
+            LEFT JOIN book_author ba ON ba.book_id = b.book_id
             JOIN category c ON c.category_id = b.category_id
             JOIN publisher p ON p.publisher_id = b.publisher_id
+            GROUP BY
+                b.book_id,
+                b.book_name,
+                b.available_copy,
+                b.total_copy,
+                b.shelf_loc,
+                c.category_name,
+                p.publisher_name
             ORDER BY b.book_id
             """
         )
         return jsonify(cursor.fetchall())
     except Exception:
-        return jsonify({"status": "error", "message": "Could not load books."}), 500
+        return jsonify({
+            "status": "error",
+            "message": "Could not load books."
+        }), 500
     finally:
         _close_db_resources(cursor, conn)
-
-
 @app.route("/api/admin/issues")
 @admin_required
 def admin_issues():
@@ -406,7 +453,7 @@ def admin_issues():
             JOIN student s ON s.student_id = i.student_id
             JOIN book b ON b.book_id = i.book_id
             JOIN admin a ON a.admin_id = i.admin_id
-            ORDER BY i.issue_date DESC, i.issue_id DESC
+            ORDER BY i.issue_id DESC
             """
         )
         issues = cursor.fetchall()
@@ -419,57 +466,108 @@ def admin_issues():
         return jsonify({"status": "error", "message": "Could not load issue records."}), 500
     finally:
         _close_db_resources(cursor, conn)
-
-
 @app.route("/api/books", methods=["POST"])
 @admin_required
 def add_book():
     book_name = (request.form.get("book_name") or "").strip()
-    author_name = (request.form.get("author_name") or "").strip()
+    author_input = (request.form.get("author_name") or "").strip()
+    authors = list(dict.fromkeys(
+        name.strip() for name in author_input.split(",") if name.strip()
+    ))
+
     shelf_loc = (request.form.get("shelf_loc") or "").strip() or None
     total_copy = _positive_integer(request.form.get("total_copy"))
     available_copy = _nonnegative_integer(request.form.get("available_copy"))
     category_id = _positive_integer(request.form.get("category_id"))
     publisher_id = _positive_integer(request.form.get("publisher_id"))
 
-    if (not book_name or len(book_name) > 200 or not author_name or len(author_name) > 120
-            or (shelf_loc is not None and len(shelf_loc) > 30)
-            or total_copy is None or available_copy is None or available_copy > total_copy
-            or category_id is None or publisher_id is None):
-        return jsonify({"status": "error", "message": "Enter valid book details and copy counts."}), 400
+    if (
+        not book_name
+        or len(book_name) > 200
+        or not authors
+        or any(len(name) > 120 for name in authors)
+        or (shelf_loc is not None and len(shelf_loc) > 30)
+        or total_copy is None
+        or available_copy is None
+        or available_copy > total_copy
+        or category_id is None
+        or publisher_id is None
+    ):
+        return jsonify({
+            "status": "error",
+            "message": "Enter valid book details, author names, and copy counts."
+        }), 400
 
     conn = None
     cursor = None
+
     try:
         conn = get_connection()
         conn.start_transaction()
         cursor = conn.cursor(dictionary=True)
-        cursor.execute("SELECT category_id FROM category WHERE category_id = %s", (category_id,))
+
+        cursor.execute(
+            "SELECT category_id FROM category WHERE category_id = %s",
+            (category_id,)
+        )
         if cursor.fetchone() is None:
             conn.rollback()
-            return jsonify({"status": "error", "message": "Select a valid category."}), 400
-        cursor.execute("SELECT publisher_id FROM publisher WHERE publisher_id = %s", (publisher_id,))
+            return jsonify({
+                "status": "error",
+                "message": "Select a valid category."
+            }), 400
+
+        cursor.execute(
+            "SELECT publisher_id FROM publisher WHERE publisher_id = %s",
+            (publisher_id,)
+        )
         if cursor.fetchone() is None:
             conn.rollback()
-            return jsonify({"status": "error", "message": "Select a valid publisher."}), 400
+            return jsonify({
+                "status": "error",
+                "message": "Select a valid publisher."
+            }), 400
 
         cursor.execute(
             """
             INSERT INTO book
-                (book_name, author_name, available_copy, total_copy, shelf_loc, category_id, publisher_id)
-            VALUES (%s, %s, %s, %s, %s, %s, %s)
+                (book_name, available_copy, total_copy, shelf_loc,
+                 category_id, publisher_id)
+            VALUES (%s, %s, %s, %s, %s, %s)
             """,
-            (book_name, author_name, available_copy, total_copy, shelf_loc, category_id, publisher_id),
+            (
+                book_name, available_copy, total_copy, shelf_loc,
+                category_id, publisher_id
+            )
         )
+
+        new_book_id = cursor.lastrowid
+
+        for author in authors:
+            cursor.execute(
+                """
+                INSERT INTO book_author (book_id, author_name)
+                VALUES (%s, %s)
+                """,
+                (new_book_id, author)
+            )
+
         conn.commit()
-        return jsonify({"status": "success", "message": "Book added successfully."}), 201
+
+        return jsonify({
+            "status": "success",
+            "message": "Book added successfully."
+        }), 201
+
     except Exception:
         _rollback(conn)
-        return jsonify({"status": "error", "message": "Could not add the book."}), 500
+        return jsonify({
+            "status": "error",
+            "message": "Could not add the book."
+        }), 500
+
     finally:
         _close_db_resources(cursor, conn)
-
-
 @app.route("/api/issues", methods=["POST"])
 @admin_required
 def issue_book():

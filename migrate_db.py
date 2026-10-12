@@ -1,6 +1,42 @@
 
 from db import get_connection
 
+BOOK_AUTHOR_TABLE_SQL = """
+CREATE TABLE IF NOT EXISTS book_author (
+    book_id INT NOT NULL,
+    author_name VARCHAR(120) NOT NULL,
+    PRIMARY KEY (book_id, author_name),
+    CONSTRAINT fk_book_author_book
+        FOREIGN KEY (book_id)
+        REFERENCES book(book_id)
+        ON DELETE CASCADE
+)
+"""
+
+AUTHOR_BACKFILL_SQL = """
+INSERT INTO book_author (book_id, author_name)
+SELECT b.book_id, b.author_name
+FROM book b
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM book_author ba
+    WHERE ba.book_id = b.book_id
+      AND ba.author_name = b.author_name
+)
+"""
+
+AUTHOR_COVERAGE_CHECK_SQL = """
+SELECT COUNT(*) AS books_without_authors
+FROM book b
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM book_author ba
+    WHERE ba.book_id = b.book_id
+)
+"""
+
+AUTHOR_COLUMN_DROP_SQL = "ALTER TABLE book DROP COLUMN author_name"
+
 COLUMN_METADATA_QUERY = """
     SELECT TABLE_NAME, COLUMN_NAME, DATA_TYPE, CHARACTER_MAXIMUM_LENGTH,
            IS_NULLABLE
@@ -41,6 +77,16 @@ REQUIRED_COLUMNS = (
 
 class MigrationSafetyError(RuntimeError):
     """Raised when metadata does not support a safe automatic migration."""
+
+
+def print_author_migration_sql():
+    print("-- Back up the database before proceeding; see README.md.")
+    print("-- These statements are for manual review and are not executed by this command.")
+    print(BOOK_AUTHOR_TABLE_SQL.strip() + ";")
+    print(AUTHOR_BACKFILL_SQL.strip() + ";")
+    print(AUTHOR_COVERAGE_CHECK_SQL.strip() + ";")
+    print("-- Run only if books_without_authors is 0:")
+    print(AUTHOR_COLUMN_DROP_SQL + ";")
 
 
 def build_migration_plan(column_rows, foreign_key_rows):
@@ -173,6 +219,20 @@ def migrate_database():
 
 
 if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--print-author-migration",
+        action="store_true",
+        help="Print the manual, reviewed author-column migration SQL without connecting to MySQL.",
+    )
+    arguments = parser.parse_args()
+
+    if arguments.print_author_migration:
+        print_author_migration_sql()
+        raise SystemExit(0)
+
     try:
         migrate_database()
     except Exception as error:

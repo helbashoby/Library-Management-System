@@ -69,6 +69,66 @@ UPDATE book SET total_copy = available_copy WHERE total_copy = 0 OR total_copy I
 
 This is a backup-first migration plan. No data is intentionally deleted by the application.
 
+### Remove the duplicated book author column
+
+The current schema and application use `book_author` for author data. `CREATE TABLE IF NOT EXISTS` does not alter an existing `book` table, so migrate an existing database manually after reviewing and backing it up. The project does not run this author migration automatically.
+
+First create and verify a full database backup:
+
+```powershell
+mysqldump --single-transaction --routines --triggers library_db > library_db_before_author_migration.sql
+```
+
+For a preview of the exact statements (this command does not connect to MySQL), run:
+
+```powershell
+python migrate_db.py --print-author-migration
+```
+
+Then connect to the backed-up database and run these steps in order. Step 1 creates `book_author` only if it is missing and adds each legacy author only when that exact link is absent. It does not remove or overwrite existing author links, so multi-author books retain all their linked authors.
+
+```sql
+CREATE TABLE IF NOT EXISTS book_author (
+    book_id INT NOT NULL,
+    author_name VARCHAR(120) NOT NULL,
+    PRIMARY KEY (book_id, author_name),
+    CONSTRAINT fk_book_author_book
+        FOREIGN KEY (book_id)
+        REFERENCES book(book_id)
+        ON DELETE CASCADE
+);
+
+INSERT INTO book_author (book_id, author_name)
+SELECT b.book_id, b.author_name
+FROM book b
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM book_author ba
+    WHERE ba.book_id = b.book_id
+      AND ba.author_name = b.author_name
+);
+```
+
+Verify author coverage before dropping anything. The result must be `0`. If it is not, stop and resolve the books without authors; do not drop the legacy column.
+
+```sql
+SELECT COUNT(*) AS books_without_authors
+FROM book b
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM book_author ba
+    WHERE ba.book_id = b.book_id
+);
+```
+
+Only after the result is `0`, remove the redundant column:
+
+```sql
+ALTER TABLE book DROP COLUMN author_name;
+```
+
+The backfill can be rerun safely before the drop. The drop is a separate, deliberate final step; do not rerun the backfill after the column has been removed.
+
 ## Student login detail
 
 The student login is designed as a basic demonstration login and is not strong identity authentication. The application checks the submitted Student ID and Student Name against the Student table, trims whitespace, and stores the session for the dashboard. This is suitable for a learning project, not a production-grade security system.

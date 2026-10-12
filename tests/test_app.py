@@ -21,6 +21,9 @@ class AppRouteTests(unittest.TestCase):
             def __init__(self, rows):
                 self.rows = rows or []
                 self._index = 0
+                self.statements = []
+                self.lastrowid = 101
+                self.rowcount = 1
 
             def __enter__(self):
                 return self
@@ -29,6 +32,7 @@ class AppRouteTests(unittest.TestCase):
                 return False
 
             def execute(self, query, params=None):
+                self.statements.append((query, params))
                 self._index = 0
 
             def fetchone(self):
@@ -53,10 +57,16 @@ class AppRouteTests(unittest.TestCase):
             def cursor(self, dictionary=False):
                 return self.cursor_obj
 
+            def start_transaction(self):
+                pass
+
             def close(self):
                 pass
 
             def commit(self):
+                pass
+
+            def rollback(self):
                 pass
 
         return FakeConnection(rows)
@@ -173,6 +183,93 @@ class AppRouteTests(unittest.TestCase):
             self.assertNotIn("student_id", current_session)
             self.assertNotIn("student_name", current_session)
             self.assertEqual(current_session["admin_id"], "LIB123")
+
+    def test_add_book_saves_all_authors_only_in_book_author(self):
+        connection = self._fake_conn([
+            {"category_id": 1},
+            {"publisher_id": 2},
+        ])
+        with self.client.session_transaction() as current_session:
+            current_session["admin_id"] = "LIB123"
+
+        with patch("app.get_connection", return_value=connection):
+            response = self.client.post(
+                "/api/books",
+                data={
+                    "book_name": "Collaborative Algorithms",
+                    "author_name": "Author One, Author Two, Author One",
+                    "total_copy": "4",
+                    "available_copy": "4",
+                    "category_id": "1",
+                    "publisher_id": "2",
+                },
+            )
+
+        self.assertEqual(response.status_code, 201)
+        book_insert, book_params = next(
+            statement for statement in connection.cursor_obj.statements
+            if statement[0].lstrip().upper().startswith("INSERT INTO BOOK")
+        )
+        self.assertNotIn("author_name", book_insert.lower())
+        self.assertEqual(
+            book_params,
+            ("Collaborative Algorithms", 4, 4, None, 1, 2),
+        )
+        author_inserts = [
+            statement for statement in connection.cursor_obj.statements
+            if statement[0].lstrip().upper().startswith("INSERT INTO BOOK_AUTHOR")
+        ]
+        self.assertEqual(
+            [statement[1] for statement in author_inserts],
+            [(101, "Author One"), (101, "Author Two")],
+        )
+
+    def test_student_author_search_uses_book_author_links(self):
+        connection = self._fake_conn([{
+            "book_id": 7,
+            "book_name": "Collaborative Algorithms",
+            "author_name": "Author One, Author Two",
+            "category": "Computer Science",
+            "publisher": "Example Press",
+            "available_copy": 2,
+            "shelf_loc": "A-01",
+        }])
+        with patch("app.get_connection", return_value=connection):
+            response = self.client.get(
+                "/api/books/search?search_by=author_name&q=Author%20Two"
+            )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json[0]["author_name"], "Author One, Author Two")
+        query, params = connection.cursor_obj.statements[0]
+        self.assertIn("ba2.author_name", query)
+        self.assertIn("LEFT JOIN book_author ba2", query)
+        self.assertNotIn("b.author_name", query)
+        self.assertEqual(params, ("%Author Two%",))
+
+    def test_admin_book_listing_aggregates_linked_authors(self):
+        connection = self._fake_conn([{
+            "book_id": 7,
+            "book_name": "Collaborative Algorithms",
+            "author_name": "Author One, Author Two",
+            "available_copy": 2,
+            "total_copy": 4,
+            "shelf_loc": "A-01",
+            "category_name": "Computer Science",
+            "publisher_name": "Example Press",
+        }])
+        with self.client.session_transaction() as current_session:
+            current_session["admin_id"] = "LIB123"
+
+        with patch("app.get_connection", return_value=connection):
+            response = self.client.get("/api/admin/books")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json[0]["author_name"], "Author One, Author Two")
+        query = connection.cursor_obj.statements[0][0]
+        self.assertIn("DISTINCT ba.author_name", query)
+        self.assertIn("LEFT JOIN book_author ba", query)
+        self.assertNotIn("b.author_name", query)
 
 
 if __name__ == "__main__":

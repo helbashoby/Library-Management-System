@@ -1,4 +1,6 @@
 import unittest
+from contextlib import redirect_stdout
+from io import StringIO
 from unittest.mock import patch
 
 import migrate_db
@@ -145,6 +147,27 @@ class MigrationPlanTests(unittest.TestCase):
             connection.fake_cursor.statements,
             [migrate_db.COLUMN_METADATA_QUERY, migrate_db.FOREIGN_KEY_METADATA_QUERY],
         )
+
+    def test_manual_author_migration_backfills_without_replacing_existing_links(self):
+        backfill = " ".join(migrate_db.AUTHOR_BACKFILL_SQL.lower().split())
+        self.assertIn("insert into book_author (book_id, author_name)", backfill)
+        self.assertIn("where not exists", backfill)
+        self.assertIn("ba.author_name = b.author_name", backfill)
+        self.assertNotIn("delete from book_author", backfill)
+
+        output = StringIO()
+        with redirect_stdout(output):
+            migrate_db.print_author_migration_sql()
+        printed_sql = output.getvalue()
+        self.assertLess(
+            printed_sql.index(migrate_db.AUTHOR_BACKFILL_SQL.strip()),
+            printed_sql.index(migrate_db.AUTHOR_COVERAGE_CHECK_SQL.strip()),
+        )
+        self.assertLess(
+            printed_sql.index(migrate_db.AUTHOR_COVERAGE_CHECK_SQL.strip()),
+            printed_sql.index(migrate_db.AUTHOR_COLUMN_DROP_SQL),
+        )
+        self.assertIn("books_without_authors is 0", printed_sql)
 
 
 if __name__ == "__main__":
