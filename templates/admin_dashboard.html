@@ -2,173 +2,1435 @@
 {% block title %}Admin Dashboard | Library Management System{% endblock %}
 
 {% block header_actions %}
-<a class="btn btn-ghost" href="{{ url_for('home') }}">Logout</a>
+<a class="btn btn-ghost" href="{{ url_for('admin_logout') }}">Logout</a>
 {% endblock %}
 
 {% block content %}
 <section class="page-head">
     <div>
         <p class="eyebrow">Administrator Dashboard</p>
-        <h1>Welcome, Admin</h1>
-        <p class="muted">Manage books, issue copies to students, and record returns.</p>
+        <h1>Welcome, {{ admin_name or 'Admin' }}</h1>
+        <p class="muted">{{ admin_phone or 'Library Administrator' }} &middot; Manage books, issue copies to students, and record returns.</p>
     </div>
 </section>
 
-<section class="card">
-    <h2>Add Book</h2>
-    <form id="add-book-form" class="form form-grid" method="post" action="/api/books">
-        <div>
-            <label for="book_name">Book Name</label>
-            <input type="text" id="book_name" name="book_name" required>
-        </div>
-        <div>
-            <label for="author_name">Author Name</label>
-            <input type="text" id="author_name" name="author_name" required>
-        </div>
-        <div>
-            <label for="available_copy">Available Copies</label>
-            <input type="number" id="available_copy" name="available_copy" min="0" required>
-        </div>
-        <div>
-            <label for="shelf_loc">Shelf Location</label>
-            <input type="text" id="shelf_loc" name="shelf_loc" placeholder="e.g. A-12">
-        </div>
-        <div>
-            <label for="category_id">Category ID</label>
-            <input type="number" id="category_id" name="category_id" min="1" required>
-        </div>
-        <div>
-            <label for="publisher_id">Publisher ID</label>
-            <input type="number" id="publisher_id" name="publisher_id" min="1" required>
-        </div>
-        <div class="form-actions">
-            <button type="submit" class="btn btn-primary">Add Book</button>
-        </div>
-    </form>
-</section>
+<div id="form-feedback" class="form-message" aria-live="polite"></div>
 
-<section class="card">
-    <h2>View Books</h2>
-    <div class="table-wrap">
-        <table class="data-table">
-            <thead>
-                <tr>
-                    <th>Book ID</th>
-                    <th>Book Name</th>
-                    <th>Author</th>
-                    <th>Available Copies</th>
-                    <th>Shelf</th>
-                    <th>Category ID</th>
-                    <th>Publisher ID</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td>1</td>
-                    <td>Database System Concepts</td>
-                    <td>Abraham Silberschatz</td>
-                    <td>4</td>
-                    <td>A-12</td>
-                    <td>1</td>
-                    <td>1</td>
-                </tr>
-                <tr>
-                    <td>6</td>
-                    <td>Operating System Concepts</td>
-                    <td>Abraham Silberschatz</td>
-                    <td>2</td>
-                    <td>A-14</td>
-                    <td>1</td>
-                    <td>2</td>
-                </tr>
-            </tbody>
-        </table>
+<nav class="dashboard-nav" role="tablist" aria-label="Admin dashboard sections">
+    <button type="button" id="overview-tab" role="tab" aria-selected="true"
+            aria-controls="overview-panel" data-dashboard-target="overview-panel">Dashboard / Overview</button>
+    <button type="button" id="students-tab" role="tab" aria-selected="false"
+            aria-controls="students-panel" data-dashboard-target="students-panel" tabindex="-1">Student Management</button>
+    <button type="button" id="books-tab" role="tab" aria-selected="false"
+            aria-controls="books-panel" data-dashboard-target="books-panel" tabindex="-1">Book Management</button>
+    <button type="button" id="issue-tab" role="tab" aria-selected="false"
+            aria-controls="issue-panel" data-dashboard-target="issue-panel" tabindex="-1">Issue Book</button>
+    <button type="button" id="return-tab" role="tab" aria-selected="false"
+            aria-controls="return-panel" data-dashboard-target="return-panel" tabindex="-1">Return Book</button>
+    <button type="button" id="records-tab" role="tab" aria-selected="false"
+            aria-controls="records-panel" data-dashboard-target="records-panel" tabindex="-1">Issue Records</button>
+</nav>
+
+<section id="overview-panel" class="dashboard-panel" role="tabpanel" aria-labelledby="overview-tab">
+    <div class="card">
+        <h2>Dashboard Overview</h2>
+        <p class="muted">Choose a section above to manage students, books, borrowing, returns, and issue history.</p>
+        <div class="feature-grid">
+            <article><h3>Students</h3><p>Review student records and register new admissions.</p></article>
+            <article><h3>Books</h3><p>Add books and search the library catalogue.</p></article>
+            <article><h3>Loans</h3><p>Issue books, record returns, and review calculated due dates and statuses.</p></article>
+        </div>
     </div>
-    <p class="hint">Sample catalogue for layout only.</p>
 </section>
 
-<div class="two-col">
+<section id="students-panel" class="dashboard-panel" role="tabpanel"
+         aria-labelledby="students-tab" hidden>
     <section class="card">
-        <h2>Issue Book</h2>
-        <form id="issue-book-form" class="form" method="post" action="/api/issues">
-            <label for="issue_student_id">Student ID</label>
-            <input type="number" id="issue_student_id" name="student_id" min="1" required>
-
-            <label for="issue_book_id">Book ID</label>
-            <input type="number" id="issue_book_id" name="book_id" min="1" required>
-
-            <label for="issue_admin_id">Admin ID</label>
-            <input type="number" id="issue_admin_id" name="admin_id" min="1" required>
-
-            <label for="issue_date">Issue Date</label>
-            <input type="date" id="issue_date" name="issue_date" required>
-
-            <label for="due_date">Due Date</label>
-            <input type="date" id="due_date" name="due_date" required>
-
-            <button type="submit" class="btn btn-primary btn-full">Issue Book</button>
+        <h2>Add Student</h2>
+        <form id="add-student-form" class="form form-grid">
+            <div>
+                <label for="new-student-id">Student ID</label>
+                <input type="text" id="new-student-id" name="student_id" maxlength="15" required>
+            </div>
+            <div>
+                <label for="new-student-name">Student Name</label>
+                <input type="text" id="new-student-name" name="student_name" maxlength="100" required>
+            </div>
+            <div>
+                <label for="new-student-department">Department</label>
+                <input type="text" id="new-student-department" name="department" maxlength="80" required>
+            </div>
+            <div>
+                <label for="new-student-semester">Semester</label>
+                <input type="number" id="new-student-semester" name="semester"
+                       min="1" max="12" step="1" required>
+            </div>
+            <div>
+                <label for="new-student-phone">Phone Number</label>
+                <input type="tel" id="new-student-phone" name="phoneno" maxlength="15">
+            </div>
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">Add Student</button>
+            </div>
         </form>
     </section>
 
     <section class="card">
+        <h2>Student Records</h2>
+        <form id="student-search-form" class="form form-inline">
+            <div>
+                <label for="student-search-id">Search by Student ID</label>
+                <input type="search" id="student-search-id" maxlength="15"
+                       placeholder="Enter exact Student ID">
+            </div>
+            <div class="search-submit">
+                <button type="submit" class="btn btn-primary">Search</button>
+            </div>
+            <div class="search-submit">
+                <button type="reset" class="btn btn-secondary">Clear</button>
+            </div>
+        </form>
+        <div class="table-wrap">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Student ID</th>
+                        <th>Student Name</th>
+                        <th>Department</th>
+                        <th>Semester</th>
+                        <th>Phone Number</th>
+                    </tr>
+                </thead>
+                <tbody id="student-table-body">
+                    <tr><td colspan="5">Loading student records...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+</section>
+
+<section id="books-panel" class="dashboard-panel" role="tabpanel"
+         aria-labelledby="books-tab" hidden>
+    <section class="card">
+        <h2>Add Book</h2>
+        <form id="add-book-form" class="form form-grid">
+            <div>
+                <label for="book_name">Book Name</label>
+                <input type="text" id="book_name" name="book_name" required>
+            </div>
+            <div>
+                <label for="author_name">Author Name</label>
+                <input type="text" id="author_name" name="author_name" required>
+            </div>
+            <div>
+                <label for="total_copy">Total Copies</label>
+                <input type="number" id="total_copy" name="total_copy" min="1" required>
+            </div>
+            <div>
+                <label for="available_copy">Available Copies</label>
+                <input type="number" id="available_copy" name="available_copy" min="0" required>
+            </div>
+            <div>
+                <label for="shelf_loc">Shelf Location</label>
+                <input type="text" id="shelf_loc" name="shelf_loc" placeholder="e.g. A-12">
+            </div>
+            <div>
+                <div class="issue-autocomplete" id="category-autocomplete">
+                    <label for="category-query">Category</label>
+                    <div class="student-picker-control">
+                        <input type="search" id="category-query"
+                               placeholder="Type category name..."
+                               autocomplete="off" required
+                               role="combobox" aria-autocomplete="list"
+                               aria-haspopup="listbox"
+                               aria-controls="category-suggestions"
+                               aria-expanded="false">
+                        <input type="hidden" id="category_id" name="category_id">
+                        <button type="button" id="clear-category"
+                                class="btn btn-secondary student-picker-clear" disabled>
+                            Clear
+                        </button>
+                        <div id="category-suggestions" class="suggestion-list"
+                             role="listbox" aria-label="Category suggestions" hidden></div>
+                    </div>
+                </div>
+            </div>
+            <div>
+                <div class="issue-autocomplete" id="publisher-autocomplete">
+                    <label for="publisher-query">Publisher</label>
+                    <div class="student-picker-control">
+                        <input type="search" id="publisher-query"
+                               placeholder="Type publisher name..."
+                               autocomplete="off" required
+                               role="combobox" aria-autocomplete="list"
+                               aria-haspopup="listbox"
+                               aria-controls="publisher-suggestions"
+                               aria-expanded="false">
+                        <input type="hidden" id="publisher_id" name="publisher_id">
+                        <button type="button" id="clear-publisher"
+                                class="btn btn-secondary student-picker-clear" disabled>
+                            Clear
+                        </button>
+                        <div id="publisher-suggestions" class="suggestion-list"
+                             role="listbox" aria-label="Publisher suggestions" hidden></div>
+                    </div>
+                </div>
+            </div>
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">Add Book</button>
+            </div>
+        </form>
+    </section>
+
+    <section class="card">
+        <h2>View Books</h2>
+        <form id="book-filter-form" class="form form-inline admin-filter-form">
+            <div>
+                <label for="book-search-by">Search by</label>
+                <select id="book-search-by" name="search_by">
+                    <option value="book_name">Book name</option>
+                    <option value="author_name">Author name</option>
+                    <option value="category">Category</option>
+                    <option value="publisher">Publisher</option>
+                </select>
+            </div>
+            <div>
+                <label for="book-search-query">Search</label>
+                <input type="search" id="book-search-query" name="q"
+                       placeholder="Enter book name, author, category, or publisher">
+            </div>
+            <div class="search-submit">
+                <button type="submit" class="btn btn-primary">Search</button>
+            </div>
+            <div class="search-submit">
+                <button type="reset" class="btn btn-secondary">Clear</button>
+            </div>
+        </form>
+        <div class="table-wrap">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Book ID</th>
+                        <th>Book Name</th>
+                        <th>Author</th>
+                        <th>Availability</th>
+                        <th>Available Copies</th>
+                        <th>Total Copies</th>
+                        <th>Shelf</th>
+                        <th>Category</th>
+                        <th>Publisher</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="book-table-body">
+                    <tr>
+                        <td colspan="10">Loading books...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+</section>
+
+<dialog id="edit-book-dialog" class="edit-book-dialog"
+        aria-labelledby="edit-book-title">
+    <form id="edit-book-form" class="form form-grid">
+        <div class="edit-book-heading">
+            <h2 id="edit-book-title">Update Book</h2>
+            <p id="edit-book-identity"></p>
+        </div>
+        <input type="hidden" id="edit-book-id">
+        <div>
+            <label for="edit-book-name">Book Name</label>
+            <input type="text" id="edit-book-name" name="book_name"
+                   maxlength="200" required>
+        </div>
+        <div>
+            <label for="edit-book-authors">Author Name(s)</label>
+            <input type="text" id="edit-book-authors" name="author_name"
+                   placeholder="Separate multiple authors with commas" required>
+        </div>
+        <div>
+            <label for="edit-book-total">Total Copies</label>
+            <input type="number" id="edit-book-total" name="total_copy"
+                   min="0" step="1" required>
+        </div>
+        <div>
+            <label for="edit-book-available">Available Copies</label>
+            <input type="number" id="edit-book-available" name="available_copy"
+                   min="0" step="1" required>
+        </div>
+        <div>
+            <label for="edit-book-shelf">Shelf Location</label>
+            <input type="text" id="edit-book-shelf" name="shelf_loc" maxlength="30">
+        </div>
+        <div>
+            <div class="issue-autocomplete" id="edit-category-autocomplete">
+                <label for="edit-category-query">Category</label>
+                <div class="student-picker-control">
+                    <input type="search" id="edit-category-query"
+                           placeholder="Type category name..." autocomplete="off"
+                           required role="combobox" aria-autocomplete="list"
+                           aria-haspopup="listbox"
+                           aria-controls="edit-category-suggestions"
+                           aria-expanded="false">
+                    <input type="hidden" id="edit-category-id" name="category_id">
+                    <button type="button" id="clear-edit-category"
+                            class="btn btn-secondary student-picker-clear" disabled>
+                        Clear
+                    </button>
+                    <div id="edit-category-suggestions" class="suggestion-list"
+                         role="listbox" aria-label="Category suggestions" hidden></div>
+                </div>
+            </div>
+        </div>
+        <div>
+            <div class="issue-autocomplete" id="edit-publisher-autocomplete">
+                <label for="edit-publisher-query">Publisher</label>
+                <div class="student-picker-control">
+                    <input type="search" id="edit-publisher-query"
+                           placeholder="Type publisher name..." autocomplete="off"
+                           required role="combobox" aria-autocomplete="list"
+                           aria-haspopup="listbox"
+                           aria-controls="edit-publisher-suggestions"
+                           aria-expanded="false">
+                    <input type="hidden" id="edit-publisher-id" name="publisher_id">
+                    <button type="button" id="clear-edit-publisher"
+                            class="btn btn-secondary student-picker-clear" disabled>
+                        Clear
+                    </button>
+                    <div id="edit-publisher-suggestions" class="suggestion-list"
+                         role="listbox" aria-label="Publisher suggestions" hidden></div>
+                </div>
+            </div>
+        </div>
+        <div class="form-actions edit-book-actions">
+            <button type="button" id="cancel-edit-book"
+                    class="btn btn-secondary">Cancel</button>
+            <button type="submit" id="save-edit-book"
+                    class="btn btn-primary">Save Changes</button>
+        </div>
+    </form>
+</dialog>
+
+<section id="issue-panel" class="card dashboard-panel" role="tabpanel"
+         aria-labelledby="issue-tab" hidden>
+        <h2>Issue Book</h2>
+        <form id="issue-book-form" class="form">
+            <div class="student-picker issue-autocomplete" id="issue-student-autocomplete">
+                <label for="issue-student-query">Student</label>
+                <div class="student-picker-control">
+                    <input type="search" id="issue-student-query"
+                           placeholder="Type student name or ID..."
+                           autocomplete="off" required
+                           role="combobox" aria-autocomplete="list"
+                           aria-haspopup="listbox"
+                           aria-controls="issue-student-suggestions"
+                           aria-expanded="false">
+                    <input type="hidden" id="issue_student_id" name="student_id">
+                    <button type="button" id="clear-issue-student"
+                            class="btn btn-secondary student-picker-clear" disabled>
+                        Clear
+                    </button>
+                    <div id="issue-student-suggestions" class="suggestion-list"
+                         role="listbox" aria-label="Student suggestions" hidden></div>
+                </div>
+            </div>
+
+            <div class="issue-autocomplete" id="issue-book-autocomplete">
+                <label for="issue-book-query">Book</label>
+                <div class="student-picker-control">
+                    <input type="search" id="issue-book-query"
+                           placeholder="Type book name or ID..."
+                           autocomplete="off" required
+                           role="combobox" aria-autocomplete="list"
+                           aria-haspopup="listbox"
+                           aria-controls="issue-book-suggestions"
+                           aria-expanded="false">
+                    <input type="hidden" id="issue_book_id" name="book_id">
+                    <button type="button" id="clear-issue-book"
+                            class="btn btn-secondary student-picker-clear" disabled>
+                        Clear
+                    </button>
+                    <div id="issue-book-suggestions" class="suggestion-list"
+                         role="listbox" aria-label="Book suggestions" hidden></div>
+                </div>
+            </div>
+
+            <label for="issue_date">Issue Date</label>
+            <input type="date" id="issue_date" name="issue_date" required>
+
+            <label for="due_date_display">Due Date (calculated, 14 days)</label>
+            <output id="due_date_display" class="form-output">Select an issue date</output>
+
+            <button type="submit" class="btn btn-primary btn-full">Issue Book</button>
+        </form>
+</section>
+
+<section id="return-panel" class="card dashboard-panel" role="tabpanel"
+         aria-labelledby="return-tab" hidden>
         <h2>Return Book</h2>
-        <form id="return-book-form" class="form" method="post" action="/api/issues/return">
-            <label for="issue_id">Issue ID</label>
-            <input type="number" id="issue_id" name="issue_id" min="1" required>
+        <form id="return-book-form" class="form">
+            <div class="issue-autocomplete" id="return-issue-autocomplete">
+                <label for="return-issue-query">Issue Record</label>
+                <div class="student-picker-control">
+                    <input type="search" id="return-issue-query"
+                           placeholder="Type issue ID, book name, or student ID..."
+                           autocomplete="off" required
+                           role="combobox" aria-autocomplete="list"
+                           aria-haspopup="listbox"
+                           aria-controls="return-issue-suggestions"
+                           aria-expanded="false">
+                    <input type="hidden" id="issue_id" name="issue_id">
+                    <button type="button" id="clear-return-issue"
+                            class="btn btn-secondary student-picker-clear" disabled>
+                        Clear
+                    </button>
+                    <div id="return-issue-suggestions" class="suggestion-list"
+                         role="listbox" aria-label="Unreturned issue records" hidden></div>
+                </div>
+            </div>
 
             <label for="return_date">Return Date</label>
             <input type="date" id="return_date" name="return_date" required>
 
             <button type="submit" class="btn btn-secondary btn-full">Record Return</button>
         </form>
-    </section>
-</div>
+</section>
 
-<section class="card">
+<section id="records-panel" class="card dashboard-panel" role="tabpanel"
+         aria-labelledby="records-tab" hidden>
     <h2>Issue Records</h2>
+    <form id="issue-filter-form" class="form form-inline admin-filter-form">
+        <div>
+            <label for="issue-search-by">Search By</label>
+            <select id="issue-search-by" name="search_by">
+                <option value="student_id">Student ID</option>
+                <option value="issue_date">Issue Date</option>
+                <option value="due_date">Due Date</option>
+                <option value="status">Status</option>
+            </select>
+        </div>
+        <div>
+            <label for="issue-search-keyword">Enter Keyword</label>
+            <input type="search" id="issue-search-keyword" name="keyword"
+                   placeholder="Enter a student ID, date, or status phrase">
+        </div>
+        <div class="search-submit">
+            <button type="submit" class="btn btn-primary">Search</button>
+        </div>
+        <div class="search-submit">
+            <button type="reset" class="btn btn-secondary">Clear</button>
+        </div>
+    </form>
+    <div class="issue-autocomplete">
+        <label for="issue-search-type">Search type</label>
+        <select id="issue-search-type" name="suggestion_type">
+            <option value="book" selected>Books</option>
+            <option value="student">Students</option>
+        </select>
+        <label for="issue-suggestion-query">Search</label>
+        <input type="search" id="issue-suggestion-query"
+               placeholder="Type the start of a book title"
+               autocomplete="off" role="combobox" aria-autocomplete="list"
+               aria-haspopup="listbox" aria-controls="issue-suggestion-list"
+               aria-expanded="false">
+        <div id="issue-suggestion-list" class="suggestion-list" role="listbox"
+             aria-label="Search suggestions" hidden></div>
+    </div>
     <div class="table-wrap">
         <table class="data-table">
             <thead>
                 <tr>
                     <th>Issue ID</th>
                     <th>Student ID</th>
-                    <th>Book ID</th>
-                    <th>Admin ID</th>
+                    <th>Student</th>
+                    <th>Department</th>
+                    <th>Book</th>
+                    <th>Admin</th>
                     <th>Issue Date</th>
                     <th>Due Date</th>
                     <th>Return Date</th>
+                    <th>Status</th>
                 </tr>
             </thead>
-            <tbody>
+            <tbody id="issue-table-body">
                 <tr>
-                    <td>1</td>
-                    <td>1</td>
-                    <td>1</td>
-                    <td>1</td>
-                    <td>2026-09-01</td>
-                    <td>2026-09-15</td>
-                    <td>—</td>
-                </tr>
-                <tr>
-                    <td>2</td>
-                    <td>2</td>
-                    <td>2</td>
-                    <td>1</td>
-                    <td>2026-09-05</td>
-                    <td>2026-09-19</td>
-                    <td>2026-09-18</td>
-                </tr>
-                <tr>
-                    <td>4</td>
-                    <td>3</td>
-                    <td>6</td>
-                    <td>1</td>
-                    <td>2026-08-20</td>
-                    <td>2026-09-03</td>
-                    <td>—</td>
+                    <td colspan="10">Loading issue records...</td>
                 </tr>
             </tbody>
         </table>
     </div>
 </section>
+
+<script>
+const formFeedback = document.getElementById('form-feedback');
+let activeIssueSearch = null;
+let issueSuggestionTimer = null;
+let issueSuggestionRequest = 0;
+let activeIssueSuggestionIndex = -1;
+
+function setFeedback(message, isError = false) {
+    formFeedback.textContent = message || ' ';
+    formFeedback.className = 'form-message' + (isError ? ' error' : ' success');
+}
+
+function createTableRow(cells, columnCount = cells.length) {
+    const row = document.createElement('tr');
+    if (cells.length === 1) {
+        const cell = document.createElement('td');
+        cell.colSpan = columnCount;
+        cell.textContent = cells[0];
+        row.appendChild(cell);
+        return row;
+    }
+    cells.forEach(function (cellValue) {
+        const cell = document.createElement('td');
+        cell.textContent = cellValue;
+        row.appendChild(cell);
+    });
+    return row;
+}
+
+const booksById = new Map();
+const deletingBookIds = new Set();
+let editingBookId = null;
+
+function createAutocomplete(config) {
+    const input = document.getElementById(config.inputId);
+    const hiddenInput = document.getElementById(config.hiddenId);
+    const list = document.getElementById(config.listId);
+    const clearButton = document.getElementById(config.clearId);
+    const wrapper = document.getElementById(config.wrapperId);
+    let timer = null;
+    let requestId = 0;
+    let activeIndex = -1;
+
+    function close() {
+        requestId += 1;
+        window.clearTimeout(timer);
+        list.hidden = true;
+        input.setAttribute('aria-expanded', 'false');
+        input.removeAttribute('aria-activedescendant');
+        activeIndex = -1;
+    }
+
+    function select(suggestion) {
+        input.value = suggestion.suggestion_label +
+            (suggestion.suggestion_detail
+                ? ' (' + suggestion.suggestion_detail + ')'
+                : '');
+        hiddenInput.value = suggestion.suggestion_value;
+        clearButton.disabled = false;
+        input.setCustomValidity('');
+        close();
+        if (config.onSelect) config.onSelect(suggestion);
+    }
+
+    function render(suggestions) {
+        list.replaceChildren();
+        activeIndex = -1;
+        if (!suggestions.length) {
+            const empty = document.createElement('div');
+            empty.className = 'suggestion-empty';
+            empty.setAttribute('role', 'status');
+            empty.textContent = config.noMatches;
+            list.appendChild(empty);
+        } else {
+            suggestions.forEach(function (suggestion, index) {
+                const option = document.createElement('div');
+                option.className = 'suggestion-option';
+                option.id = config.listId + '-option-' + index;
+                option.setAttribute('role', 'option');
+                option.setAttribute('aria-selected', 'false');
+                const unavailable = config.disableUnavailable &&
+                    Number(suggestion.available_copy) <= 0;
+                if (unavailable) {
+                    option.setAttribute('aria-disabled', 'true');
+                    option.classList.add('suggestion-option-disabled');
+                }
+                option.addEventListener('pointerdown', function (event) {
+                    event.preventDefault();
+                });
+                option.addEventListener('click', function () {
+                    if (!unavailable) select(suggestion);
+                });
+
+                const type = document.createElement('span');
+                type.className = 'suggestion-type';
+                type.textContent = config.itemType;
+                const label = document.createElement('span');
+                label.className = 'suggestion-label';
+                label.textContent = suggestion.suggestion_label;
+                if (config.showAvailability && unavailable) {
+                    label.textContent += ' — Currently Not Available (0 copies)';
+                }
+                option.append(type, label);
+                if (suggestion.suggestion_detail) {
+                    const detail = document.createElement('span');
+                    detail.className = 'suggestion-detail';
+                    detail.textContent = config.showAvailability
+                        ? suggestion.suggestion_detail + ' · ' +
+                            suggestion.available_copy + ' copies'
+                        : suggestion.suggestion_detail;
+                    option.appendChild(detail);
+                }
+                list.appendChild(option);
+            });
+        }
+        list.hidden = false;
+        input.setAttribute('aria-expanded', 'true');
+    }
+
+    function setActive(index) {
+        const options = Array.from(
+            list.querySelectorAll('[role="option"]:not([aria-disabled="true"])')
+        );
+        if (!options.length) return;
+        activeIndex = (index + options.length) % options.length;
+        options.forEach(function (option, optionIndex) {
+            option.setAttribute('aria-selected', String(optionIndex === activeIndex));
+        });
+        input.setAttribute('aria-activedescendant', options[activeIndex].id);
+        options[activeIndex].scrollIntoView({block: 'nearest'});
+    }
+
+    function update() {
+        const keyword = input.value.trim();
+        const currentRequest = ++requestId;
+        window.clearTimeout(timer);
+        hiddenInput.value = '';
+        clearButton.disabled = !input.value;
+        input.setCustomValidity('');
+        activeIndex = -1;
+        if (!keyword) {
+            close();
+            return;
+        }
+
+        list.replaceChildren();
+        const loading = document.createElement('div');
+        loading.className = 'suggestion-empty';
+        loading.setAttribute('role', 'status');
+        loading.textContent = 'Searching...';
+        list.appendChild(loading);
+        list.hidden = false;
+        input.setAttribute('aria-expanded', 'true');
+        input.removeAttribute('aria-activedescendant');
+        timer = window.setTimeout(async function () {
+            try {
+                const query = new URLSearchParams({q: keyword, type: config.type});
+                const response = await fetch(
+                    '/api/admin/issues/suggestions?' + query.toString()
+                );
+                const suggestions = await response.json();
+                if (currentRequest !== requestId) return;
+                if (!response.ok || !Array.isArray(suggestions)) {
+                    render([]);
+                    const message = list.querySelector('.suggestion-empty');
+                    if (message) {
+                        message.textContent = suggestions.message ||
+                            'Could not load suggestions.';
+                    }
+                    return;
+                }
+                if (config.showAvailability) {
+                    suggestions.forEach(function (suggestion) {
+                        suggestion.available_copy = Number(suggestion.available_copy);
+                    });
+                }
+                render(suggestions);
+            } catch (error) {
+                if (currentRequest !== requestId) return;
+                render([]);
+                const message = list.querySelector('.suggestion-empty');
+                if (message) message.textContent = 'Could not load suggestions.';
+            }
+        }, 180);
+    }
+
+    input.addEventListener('input', update);
+    input.addEventListener('keydown', function (event) {
+        const options = list.querySelectorAll(
+            '[role="option"]:not([aria-disabled="true"])'
+        );
+        if (event.key === 'ArrowDown' && options.length) {
+            event.preventDefault();
+            setActive(activeIndex + 1);
+        } else if (event.key === 'ArrowUp' && options.length) {
+            event.preventDefault();
+            setActive(activeIndex < 0 ? options.length - 1 : activeIndex - 1);
+        } else if (event.key === 'Enter' && activeIndex >= 0) {
+            event.preventDefault();
+            options[activeIndex].click();
+        } else if (event.key === 'Enter' && !list.hidden) {
+            event.preventDefault();
+        } else if (event.key === 'Escape') {
+            close();
+        }
+    });
+    input.addEventListener('blur', function () {
+        window.setTimeout(function () {
+            if (!wrapper.contains(document.activeElement)) close();
+        }, 0);
+    });
+    clearButton.addEventListener('click', function () {
+        hiddenInput.value = '';
+        input.value = '';
+        input.setCustomValidity('');
+        clearButton.disabled = true;
+        close();
+        input.focus();
+    });
+    document.addEventListener('pointerdown', function (event) {
+        if (!wrapper.contains(event.target)) close();
+    });
+    document.getElementById(config.formId).addEventListener('reset', function () {
+        window.setTimeout(function () {
+            hiddenInput.value = '';
+            input.value = '';
+            input.setCustomValidity('');
+            clearButton.disabled = true;
+            close();
+        }, 0);
+    });
+    return {
+        close: close,
+        validate: function () {
+            if (!hiddenInput.value) {
+                input.setCustomValidity(config.requiredMessage);
+                input.reportValidity();
+                return false;
+            }
+            input.setCustomValidity('');
+            return true;
+        },
+    };
+}
+
+function closeIssueSuggestions() {
+    issueSuggestionRequest += 1;
+    window.clearTimeout(issueSuggestionTimer);
+    const input = document.getElementById('issue-suggestion-query');
+    const list = document.getElementById('issue-suggestion-list');
+    list.hidden = true;
+    input.setAttribute('aria-expanded', 'false');
+    input.removeAttribute('aria-activedescendant');
+    activeIssueSuggestionIndex = -1;
+}
+
+function renderIssueSuggestions(suggestions) {
+    const input = document.getElementById('issue-suggestion-query');
+    const list = document.getElementById('issue-suggestion-list');
+    const searchType = document.getElementById('issue-search-type').value;
+    list.replaceChildren();
+    activeIssueSuggestionIndex = -1;
+
+    if (!suggestions.length) {
+        const empty = document.createElement('div');
+        empty.className = 'suggestion-empty';
+        empty.setAttribute('role', 'status');
+        empty.textContent = searchType === 'book'
+            ? 'No matching book titles.'
+            : 'No matching students.';
+        list.appendChild(empty);
+    } else {
+        suggestions.forEach(function (suggestion, index) {
+            const option = document.createElement('div');
+            option.className = 'suggestion-option';
+            option.id = 'issue-suggestion-' + index;
+            option.setAttribute('role', 'option');
+            option.setAttribute('aria-selected', 'false');
+            option.addEventListener('pointerdown', function (event) {
+                event.preventDefault();
+            });
+            option.addEventListener('click', function () {
+                selectIssueSuggestion(suggestion);
+            });
+
+            const type = document.createElement('span');
+            type.className = 'suggestion-type';
+            type.textContent = suggestion.suggestion_type;
+            const label = document.createElement('span');
+            label.className = 'suggestion-label';
+            label.textContent = suggestion.suggestion_label;
+            const detail = document.createElement('span');
+            detail.className = 'suggestion-detail';
+            detail.textContent = suggestion.suggestion_detail;
+            option.append(type, label, detail);
+            list.appendChild(option);
+        });
+    }
+
+    list.hidden = false;
+    input.setAttribute('aria-expanded', 'true');
+}
+
+function showIssueSuggestionLoading() {
+    const input = document.getElementById('issue-suggestion-query');
+    const list = document.getElementById('issue-suggestion-list');
+    list.replaceChildren();
+    const loading = document.createElement('div');
+    loading.className = 'suggestion-empty';
+    loading.setAttribute('role', 'option');
+    loading.setAttribute('aria-disabled', 'true');
+    loading.textContent = 'Searching…';
+    list.appendChild(loading);
+    list.hidden = false;
+    input.setAttribute('aria-expanded', 'true');
+    input.removeAttribute('aria-activedescendant');
+}
+
+function selectIssueSuggestion(suggestion) {
+    const input = document.getElementById('issue-suggestion-query');
+    input.value = suggestion.suggestion_label + ' (' + suggestion.suggestion_detail + ')';
+    activeIssueSearch = {
+        search_by: suggestion.suggestion_type === 'Student' ? 'student_id' : 'book_id',
+        keyword: suggestion.suggestion_value,
+    };
+    closeIssueSuggestions();
+    loadIssueRecords(activeIssueSearch);
+}
+
+function setActiveIssueSuggestion(index) {
+    const input = document.getElementById('issue-suggestion-query');
+    const options = Array.from(
+        document.querySelectorAll('#issue-suggestion-list [role="option"]:not([aria-disabled="true"])')
+    );
+    if (!options.length) return;
+    activeIssueSuggestionIndex = (index + options.length) % options.length;
+    options.forEach(function (option, optionIndex) {
+        const isActive = optionIndex === activeIssueSuggestionIndex;
+        option.setAttribute('aria-selected', String(isActive));
+    });
+    input.setAttribute(
+        'aria-activedescendant',
+        options[activeIssueSuggestionIndex].id
+    );
+    options[activeIssueSuggestionIndex].scrollIntoView({block: 'nearest'});
+}
+
+async function updateIssueSuggestions() {
+    const input = document.getElementById('issue-suggestion-query');
+    const list = document.getElementById('issue-suggestion-list');
+    const keyword = input.value.trim();
+    const searchType = document.getElementById('issue-search-type').value;
+    const requestId = ++issueSuggestionRequest;
+    if (!keyword) {
+        closeIssueSuggestions();
+        return;
+    }
+
+    showIssueSuggestionLoading();
+    window.clearTimeout(issueSuggestionTimer);
+    issueSuggestionTimer = window.setTimeout(async function () {
+        try {
+            const query = new URLSearchParams({q: keyword, type: searchType});
+            const response = await fetch('/api/admin/issues/suggestions?' + query.toString());
+            const suggestions = await response.json();
+            if (requestId !== issueSuggestionRequest) return;
+            if (!response.ok || !Array.isArray(suggestions)) {
+                renderIssueSuggestions([]);
+                const message = list.querySelector('.suggestion-empty');
+                if (message) {
+                    message.textContent = suggestions.message || 'Could not load suggestions.';
+                }
+                return;
+            }
+            renderIssueSuggestions(suggestions);
+        } catch (error) {
+            if (requestId !== issueSuggestionRequest) return;
+            renderIssueSuggestions([]);
+            const message = list.querySelector('.suggestion-empty');
+            if (message) message.textContent = 'Could not load suggestions.';
+        }
+    }, 180);
+}
+
+async function loadStudents(studentId = '') {
+    const studentTableBody = document.getElementById('student-table-body');
+    studentTableBody.innerHTML = '';
+    studentTableBody.appendChild(createTableRow(['Loading student records...'], 5));
+
+    const query = new URLSearchParams();
+    if (studentId) query.set('student_id', studentId);
+
+    try {
+        const queryString = query.toString();
+        const response = await fetch('/api/admin/students' + (queryString ? '?' + queryString : ''));
+        const students = await response.json();
+        studentTableBody.innerHTML = '';
+
+        if (!response.ok) {
+            studentTableBody.appendChild(createTableRow([
+                students.message || 'Could not load student records.'
+            ], 5));
+            return;
+        }
+        if (!Array.isArray(students) || students.length === 0) {
+            studentTableBody.appendChild(createTableRow([
+                studentId ? 'No student matches that ID.' : 'No student records found.'
+            ], 5));
+            return;
+        }
+
+        students.forEach(function (student) {
+            studentTableBody.appendChild(createTableRow([
+                student.student_id,
+                student.student_name,
+                student.department,
+                student.semester,
+                student.phoneno || '—',
+            ]));
+        });
+    } catch (error) {
+        studentTableBody.innerHTML = '';
+        studentTableBody.appendChild(createTableRow(['Could not load student records.'], 5));
+    }
+}
+
+async function loadBooks(searchBy = '', keyword = '') {
+    const bookTableBody = document.getElementById('book-table-body');
+    const query = new URLSearchParams();
+    if (searchBy) query.set('search_by', searchBy);
+    if (keyword) query.set('q', keyword);
+
+    try {
+        const queryString = query.toString();
+        const response = await fetch('/api/admin/books' + (queryString ? '?' + queryString : ''));
+        const books = await response.json();
+        bookTableBody.innerHTML = '';
+        booksById.clear();
+
+        if (!response.ok || !Array.isArray(books)) {
+            bookTableBody.appendChild(createTableRow(['Unable to load books.'], 10));
+            return;
+        }
+        if (books.length === 0) {
+            bookTableBody.appendChild(createTableRow(['No books found.'], 10));
+            return;
+        }
+
+        books.forEach(function (book) {
+            booksById.set(String(book.book_id), book);
+            const row = createTableRow([
+                book.book_id,
+                book.book_name,
+                book.author_name || '—',
+                Number(book.available_copy) > 0 ? 'Available' : 'Currently Not Available',
+                book.available_copy,
+                book.total_copy,
+                book.shelf_loc || '—',
+                book.category_name,
+                book.publisher_name,
+            ]);
+            const actions = document.createElement('td');
+            actions.className = 'book-actions';
+            const updateButton = document.createElement('button');
+            updateButton.type = 'button';
+            updateButton.className = 'btn btn-secondary btn-small';
+            updateButton.dataset.bookAction = 'update';
+            updateButton.dataset.bookId = String(book.book_id);
+            updateButton.textContent = 'Update';
+            updateButton.setAttribute('aria-label', 'Update ' + book.book_name);
+            const deleteButton = document.createElement('button');
+            deleteButton.type = 'button';
+            deleteButton.className = 'btn btn-danger btn-small';
+            deleteButton.dataset.bookAction = 'delete';
+            deleteButton.dataset.bookId = String(book.book_id);
+            deleteButton.textContent = 'Delete';
+            deleteButton.setAttribute('aria-label', 'Delete ' + book.book_name);
+            actions.append(updateButton, deleteButton);
+            row.appendChild(actions);
+            bookTableBody.appendChild(row);
+        });
+    } catch (error) {
+        bookTableBody.innerHTML = '';
+        booksById.clear();
+        bookTableBody.appendChild(createTableRow(['Unable to load books.'], 10));
+    }
+}
+
+async function loadIssueRecords(filters = null) {
+    const issueTableBody = document.getElementById('issue-table-body');
+    const query = new URLSearchParams();
+    if (filters && filters.keyword) {
+        query.set('search_by', filters.search_by);
+        query.set('keyword', filters.keyword);
+    }
+
+    try {
+        const queryString = query.toString();
+        const response = await fetch('/api/admin/issues' + (queryString ? '?' + queryString : ''));
+        const issues = await response.json();
+        issueTableBody.innerHTML = '';
+
+        if (!response.ok) {
+            issueTableBody.appendChild(createTableRow([
+                issues.message || 'Unable to load issue records.'
+            ], 10));
+            return;
+        }
+        if (!Array.isArray(issues)) {
+            issueTableBody.appendChild(createTableRow(['Unable to load issue records.'], 10));
+            return;
+        }
+        if (!issues.length) {
+            issueTableBody.appendChild(createTableRow(['No issue records found.'], 10));
+        } else {
+            issues.forEach(function (issue) {
+                issueTableBody.appendChild(createTableRow([
+                    issue.issue_id,
+                    issue.student_id,
+                    issue.student_name,
+                    issue.department,
+                    issue.book_name,
+                    issue.admin_name,
+                    issue.issue_date,
+                    issue.due_date,
+                    issue.return_date || '—',
+                    issue.status,
+                ]));
+            });
+        }
+
+    } catch (error) {
+        issueTableBody.innerHTML = '';
+        issueTableBody.appendChild(createTableRow(['Unable to load issue records.'], 10));
+    }
+}
+
+async function refreshDashboard() {
+    const bookSearchBy = document.getElementById('book-search-by').value;
+    const bookSearchQuery = document.getElementById('book-search-query').value.trim();
+    const studentSearch = document.getElementById('student-search-id').value.trim();
+
+    await loadStudents(studentSearch);
+    await loadBooks();
+    if (bookSearchQuery) {
+        await loadBooks(bookSearchBy, bookSearchQuery);
+    }
+    await loadIssueRecords(activeIssueSearch);
+}
+
+const studentAutocomplete = createAutocomplete({
+    inputId: 'issue-student-query',
+    hiddenId: 'issue_student_id',
+    listId: 'issue-student-suggestions',
+    clearId: 'clear-issue-student',
+    wrapperId: 'issue-student-autocomplete',
+    formId: 'issue-book-form',
+    type: 'student',
+    itemType: 'Student',
+    noMatches: 'No matching students found',
+    requiredMessage: 'Select a student from the suggestions.',
+});
+const issueBookAutocomplete = createAutocomplete({
+    inputId: 'issue-book-query',
+    hiddenId: 'issue_book_id',
+    listId: 'issue-book-suggestions',
+    clearId: 'clear-issue-book',
+    wrapperId: 'issue-book-autocomplete',
+    formId: 'issue-book-form',
+    type: 'book',
+    itemType: 'Book',
+    noMatches: 'No matching books found',
+    requiredMessage: 'Select a book from the suggestions.',
+    disableUnavailable: true,
+    showAvailability: true,
+});
+const categoryAutocomplete = createAutocomplete({
+    inputId: 'category-query',
+    hiddenId: 'category_id',
+    listId: 'category-suggestions',
+    clearId: 'clear-category',
+    wrapperId: 'category-autocomplete',
+    formId: 'add-book-form',
+    type: 'category',
+    itemType: 'Category',
+    noMatches: 'No matching categories found',
+    requiredMessage: 'Select a category from the suggestions.',
+});
+const publisherAutocomplete = createAutocomplete({
+    inputId: 'publisher-query',
+    hiddenId: 'publisher_id',
+    listId: 'publisher-suggestions',
+    clearId: 'clear-publisher',
+    wrapperId: 'publisher-autocomplete',
+    formId: 'add-book-form',
+    type: 'publisher',
+    itemType: 'Publisher',
+    noMatches: 'No matching publishers found',
+    requiredMessage: 'Select a publisher from the suggestions.',
+});
+const editCategoryAutocomplete = createAutocomplete({
+    inputId: 'edit-category-query',
+    hiddenId: 'edit-category-id',
+    listId: 'edit-category-suggestions',
+    clearId: 'clear-edit-category',
+    wrapperId: 'edit-category-autocomplete',
+    formId: 'edit-book-form',
+    type: 'category',
+    itemType: 'Category',
+    noMatches: 'No matching categories found',
+    requiredMessage: 'Select a category from the suggestions.',
+});
+const editPublisherAutocomplete = createAutocomplete({
+    inputId: 'edit-publisher-query',
+    hiddenId: 'edit-publisher-id',
+    listId: 'edit-publisher-suggestions',
+    clearId: 'clear-edit-publisher',
+    wrapperId: 'edit-publisher-autocomplete',
+    formId: 'edit-book-form',
+    type: 'publisher',
+    itemType: 'Publisher',
+    noMatches: 'No matching publishers found',
+    requiredMessage: 'Select a publisher from the suggestions.',
+});
+const returnIssueAutocomplete = createAutocomplete({
+    inputId: 'return-issue-query',
+    hiddenId: 'issue_id',
+    listId: 'return-issue-suggestions',
+    clearId: 'clear-return-issue',
+    wrapperId: 'return-issue-autocomplete',
+    formId: 'return-book-form',
+    type: 'return_issue',
+    itemType: 'Unreturned issue',
+    noMatches: 'No matching unreturned issue records found',
+    requiredMessage: 'Select an unreturned issue record from the suggestions.',
+});
+
+function openBookEditor(book) {
+    const dialog = document.getElementById('edit-book-dialog');
+    editingBookId = String(book.book_id);
+    document.getElementById('edit-book-id').value = editingBookId;
+    document.getElementById('edit-book-identity').textContent =
+        'Book ID ' + book.book_id;
+    document.getElementById('edit-book-name').value = book.book_name || '';
+    document.getElementById('edit-book-authors').value = book.author_name || '';
+    document.getElementById('edit-book-total').value = book.total_copy;
+    document.getElementById('edit-book-available').value = book.available_copy;
+    document.getElementById('edit-book-shelf').value = book.shelf_loc || '';
+    document.getElementById('edit-category-query').value = book.category_name || '';
+    document.getElementById('edit-category-query').setCustomValidity('');
+    document.getElementById('edit-category-id').value = book.category_id;
+    document.getElementById('clear-edit-category').disabled = false;
+    document.getElementById('edit-publisher-query').value = book.publisher_name || '';
+    document.getElementById('edit-publisher-query').setCustomValidity('');
+    document.getElementById('edit-publisher-id').value = book.publisher_id;
+    document.getElementById('clear-edit-publisher').disabled = false;
+    document.getElementById('edit-book-available').setCustomValidity('');
+    if (!dialog.open) dialog.showModal();
+    document.getElementById('edit-book-name').focus();
+}
+
+document.getElementById('book-table-body').addEventListener('click', async function (event) {
+    const button = event.target.closest('[data-book-action]');
+    if (!button || !this.contains(button)) return;
+    const bookId = button.dataset.bookId;
+    const book = booksById.get(bookId);
+    if (!book) return;
+
+    if (button.dataset.bookAction === 'update') {
+        openBookEditor(book);
+        return;
+    }
+    if (button.dataset.bookAction !== 'delete' || deletingBookIds.has(bookId)) return;
+    if (!window.confirm('Delete "' + book.book_name + '" (ID ' + book.book_id + ')?')) {
+        return;
+    }
+
+    deletingBookIds.add(bookId);
+    button.disabled = true;
+    try {
+        const response = await fetch('/api/books/' + encodeURIComponent(bookId), {
+            method: 'DELETE',
+        });
+        const result = await response.json();
+        setFeedback(result.message || 'Book deletion completed.', !response.ok);
+        if (response.ok) {
+            await loadBooks(
+                document.getElementById('book-search-by').value,
+                document.getElementById('book-search-query').value.trim()
+            );
+        }
+    } catch (error) {
+        setFeedback('Could not delete the book. Please try again.', true);
+    } finally {
+        deletingBookIds.delete(bookId);
+    }
+});
+
+document.getElementById('edit-book-form').addEventListener('submit', async function (event) {
+    event.preventDefault();
+    if (!editCategoryAutocomplete.validate() || !editPublisherAutocomplete.validate()) return;
+
+    const totalInput = document.getElementById('edit-book-total');
+    const availableInput = document.getElementById('edit-book-available');
+    if (Number(availableInput.value) > Number(totalInput.value)) {
+        availableInput.setCustomValidity('Available copies cannot exceed total copies.');
+        availableInput.reportValidity();
+        return;
+    }
+    availableInput.setCustomValidity('');
+
+    const saveButton = document.getElementById('save-edit-book');
+    saveButton.disabled = true;
+    try {
+        const response = await fetch(
+            '/api/books/' + encodeURIComponent(editingBookId),
+            {method: 'PUT', body: new FormData(event.target)}
+        );
+        const result = await response.json();
+        setFeedback(result.message || 'Book update completed.', !response.ok);
+        if (response.ok) {
+            document.getElementById('edit-book-dialog').close();
+            await loadBooks(
+                document.getElementById('book-search-by').value,
+                document.getElementById('book-search-query').value.trim()
+            );
+        }
+    } catch (error) {
+        setFeedback('Could not update the book. Please try again.', true);
+    } finally {
+        saveButton.disabled = false;
+    }
+});
+
+document.getElementById('edit-book-total').addEventListener('input', function () {
+    const availableInput = document.getElementById('edit-book-available');
+    availableInput.setCustomValidity(
+        Number(availableInput.value) > Number(this.value)
+            ? 'Available copies cannot exceed total copies.'
+            : ''
+    );
+});
+document.getElementById('edit-book-available').addEventListener('input', function () {
+    const totalInput = document.getElementById('edit-book-total');
+    this.setCustomValidity(
+        Number(this.value) > Number(totalInput.value)
+            ? 'Available copies cannot exceed total copies.'
+            : ''
+    );
+});
+document.getElementById('cancel-edit-book').addEventListener('click', function () {
+    document.getElementById('edit-book-dialog').close();
+});
+document.getElementById('edit-book-dialog').addEventListener('close', function () {
+    editingBookId = null;
+});
+
+document.getElementById('add-student-form').addEventListener('submit', async function (event) {
+    event.preventDefault();
+    try {
+        const response = await fetch('/api/admin/students', {
+            method: 'POST',
+            body: new FormData(event.target),
+        });
+        const result = await response.json();
+        setFeedback(result.message || 'Student action completed.', !response.ok);
+        if (response.ok) {
+            event.target.reset();
+            document.getElementById('student-search-id').value = '';
+            await refreshDashboard();
+        }
+    } catch (error) {
+        setFeedback('Could not add the student. Please try again.', true);
+    }
+});
+
+document.getElementById('student-search-form').addEventListener('submit', function (event) {
+    event.preventDefault();
+    loadStudents(document.getElementById('student-search-id').value.trim());
+});
+
+document.getElementById('student-search-form').addEventListener('reset', function () {
+    window.setTimeout(function () {
+        loadStudents();
+    }, 0);
+});
+
+document.getElementById('add-book-form').addEventListener('submit', async function (event) {
+    event.preventDefault();
+    if (!categoryAutocomplete.validate() || !publisherAutocomplete.validate()) return;
+    const formData = new FormData(event.target);
+    const response = await fetch('/api/books', { method: 'POST', body: formData });
+    const result = await response.json();
+    setFeedback(result.message || 'Operation completed.', !response.ok);
+    if (response.ok) {
+        event.target.reset();
+        refreshDashboard();
+    }
+});
+
+document.getElementById('issue-book-form').addEventListener('submit', async function (event) {
+    event.preventDefault();
+    if (!studentAutocomplete.validate() || !issueBookAutocomplete.validate()) return;
+    const formData = new FormData(event.target);
+    const response = await fetch('/api/issues', { method: 'POST', body: formData });
+    const result = await response.json();
+    setFeedback(result.message || 'Issue action completed.', !response.ok);
+    if (response.ok) {
+        event.target.reset();
+        refreshDashboard();
+    }
+});
+
+document.getElementById('return-book-form').addEventListener('submit', async function (event) {
+    event.preventDefault();
+    if (!returnIssueAutocomplete.validate()) return;
+    const formData = new FormData(event.target);
+    const response = await fetch('/api/issues/return', { method: 'POST', body: formData });
+    const result = await response.json();
+    setFeedback(result.message || 'Return action completed.', !response.ok);
+    if (response.ok) {
+        event.target.reset();
+        refreshDashboard();
+    }
+});
+
+document.getElementById('book-filter-form').addEventListener('submit', function (event) {
+    event.preventDefault();
+    loadBooks(
+        document.getElementById('book-search-by').value,
+        document.getElementById('book-search-query').value.trim()
+    );
+});
+
+document.getElementById('book-filter-form').addEventListener('reset', function () {
+    window.setTimeout(function () {
+        loadBooks();
+    }, 0);
+});
+
+document.getElementById('issue-filter-form').addEventListener('submit', function (event) {
+    event.preventDefault();
+    const keyword = document.getElementById('issue-search-keyword').value.trim();
+    activeIssueSearch = keyword ? {
+        search_by: document.getElementById('issue-search-by').value,
+        keyword: keyword,
+    } : null;
+    document.getElementById('issue-suggestion-query').value = '';
+    closeIssueSuggestions();
+    loadIssueRecords(activeIssueSearch);
+});
+
+document.getElementById('issue-filter-form').addEventListener('reset', function () {
+    window.setTimeout(function () {
+        activeIssueSearch = null;
+        document.getElementById('issue-suggestion-query').value = '';
+        closeIssueSuggestions();
+        loadIssueRecords();
+    }, 0);
+});
+
+const issueSuggestionInput = document.getElementById('issue-suggestion-query');
+issueSuggestionInput.addEventListener('input', function () {
+    window.clearTimeout(issueSuggestionTimer);
+    activeIssueSuggestionIndex = -1;
+    if (issueSuggestionInput.value.trim()) {
+        showIssueSuggestionLoading();
+    }
+    updateIssueSuggestions();
+});
+document.getElementById('issue-search-type').addEventListener('change', function (event) {
+    const input = document.getElementById('issue-suggestion-query');
+    input.value = '';
+    input.placeholder = event.target.value === 'book'
+        ? 'Type the start of a book title'
+        : 'Type the start of a student name or ID';
+    closeIssueSuggestions();
+    input.focus();
+});
+issueSuggestionInput.addEventListener('keydown', function (event) {
+    const list = document.getElementById('issue-suggestion-list');
+    const options = list.querySelectorAll('[role="option"]:not([aria-disabled="true"])');
+    if (event.key === 'ArrowDown' && options.length) {
+        event.preventDefault();
+        setActiveIssueSuggestion(activeIssueSuggestionIndex + 1);
+    } else if (event.key === 'ArrowUp' && options.length) {
+        event.preventDefault();
+        setActiveIssueSuggestion(
+            activeIssueSuggestionIndex < 0 ? options.length - 1 : activeIssueSuggestionIndex - 1
+        );
+    } else if (event.key === 'Enter' && activeIssueSuggestionIndex >= 0) {
+        event.preventDefault();
+        options[activeIssueSuggestionIndex].click();
+    } else if (event.key === 'Escape') {
+        closeIssueSuggestions();
+    }
+});
+issueSuggestionInput.addEventListener('blur', function () {
+    window.setTimeout(closeIssueSuggestions, 120);
+});
+document.addEventListener('pointerdown', function (event) {
+    if (!event.target.closest('.issue-autocomplete')) {
+        closeIssueSuggestions();
+    }
+});
+
+function formatLocalDate(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
+function updateDueDate() {
+    const issueDateInput = document.getElementById('issue_date');
+    const dueDateDisplay = document.getElementById('due_date_display');
+    if (!issueDateInput.value) {
+        dueDateDisplay.textContent = 'Select an issue date';
+        return;
+    }
+    const issueDate = new Date(issueDateInput.value + 'T00:00:00');
+    issueDate.setDate(issueDate.getDate() + 14);
+    dueDateDisplay.textContent = formatLocalDate(issueDate);
+}
+
+const issueDateInput = document.getElementById('issue_date');
+issueDateInput.value = formatLocalDate(new Date());
+issueDateInput.addEventListener('change', updateDueDate);
+document.getElementById('issue-book-form').addEventListener('reset', function () {
+    window.setTimeout(function () {
+        issueDateInput.value = formatLocalDate(new Date());
+        updateDueDate();
+    }, 0);
+});
+updateDueDate();
+
+const dashboardTabs = Array.from(document.querySelectorAll('[data-dashboard-target]'));
+const dashboardPanels = Array.from(document.querySelectorAll('.dashboard-panel'));
+
+function activateDashboardTab(tab, moveFocus = false) {
+    dashboardTabs.forEach(function (dashboardTab) {
+        const isSelected = dashboardTab === tab;
+        dashboardTab.setAttribute('aria-selected', String(isSelected));
+        dashboardTab.tabIndex = isSelected ? 0 : -1;
+    });
+    dashboardPanels.forEach(function (panel) {
+        panel.hidden = panel.id !== tab.dataset.dashboardTarget;
+    });
+    if (moveFocus) tab.focus();
+}
+
+dashboardTabs.forEach(function (tab, index) {
+    tab.addEventListener('click', function () {
+        activateDashboardTab(tab);
+    });
+    tab.addEventListener('keydown', function (event) {
+        let nextIndex = null;
+        if (event.key === 'ArrowRight') nextIndex = (index + 1) % dashboardTabs.length;
+        if (event.key === 'ArrowLeft') nextIndex = (index - 1 + dashboardTabs.length) % dashboardTabs.length;
+        if (event.key === 'Home') nextIndex = 0;
+        if (event.key === 'End') nextIndex = dashboardTabs.length - 1;
+        if (nextIndex !== null) {
+            event.preventDefault();
+            activateDashboardTab(dashboardTabs[nextIndex], true);
+        }
+    });
+});
+
+refreshDashboard();
+</script>
 {% endblock %}

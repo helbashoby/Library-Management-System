@@ -8,9 +8,13 @@
         <h1>Admin Login</h1>
         <p class="muted">Enter your admin ID and password to manage library records.</p>
 
-        <form id="admin-login-form" class="form" method="post" action="/api/admin/login">
+        {% if error %}
+            <p class="form-error">{{ error }}</p>
+        {% endif %}
+
+        <form id="admin-login-form" class="form" method="post" action="{{ url_for('admin_login_api') }}">
             <label for="admin_id">Admin ID</label>
-            <input type="text" id="admin_id" name="admin_id" placeholder="e.g. 1" required>
+            <input type="text" id="admin_id" name="admin_id" placeholder="e.g. LIB123" required>
 
             <label for="password">Password</label>
             <input type="password" id="password" name="password" placeholder="Enter password" required>

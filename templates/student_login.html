@@ -2,39 +2,39 @@
 {% block title %}Student Login | Library Management System{% endblock %}
 
 {% block content %}
-
 <section class="auth-wrap">
     <div class="card auth-card">
         <p class="eyebrow">Student Portal</p>
         <h1>Student Login</h1>
         <p class="muted">Enter your student ID and name to continue.</p>
 
-```
-    <form id="student-login-form" class="form" method="post" action="/api/student/login">
-        <label for="student_id">Student ID</label>
-        <input
-            type="number"
-            id="student_id"
-            name="student_id"
-            placeholder="e.g. 1"
-            required
-        >
+        {% if error %}
+            <p class="form-error">{{ error }}</p>
+        {% endif %}
 
-        <label for="student_name">Student Name</label>
-        <input
-            type="text"
-            id="student_name"
-            name="student_name"
-            placeholder="Enter your name"
-            required
-        >
+        <form id="student-login-form" class="form" method="post" action="{{ url_for('student_login_api') }}">
+            <label for="student_id">Student ID</label>
+            <input
+                type="text"
+                id="student_id"
+                name="student_id"
+                placeholder="e.g. PKD25IT004"
+                required
+            >
 
-        <button type="submit" class="btn btn-primary btn-full">Login</button>
-    </form>
+            <label for="student_name">Student Name</label>
+            <input
+                type="text"
+                id="student_name"
+                name="student_name"
+                placeholder="Enter your name"
+                required
+            >
 
-    <a class="back-link" href="{{ url_for('home') }}">Back to home</a>
-</div>
-```
+            <button type="submit" class="btn btn-primary btn-full">Login</button>
+        </form>
 
+        <a class="back-link" href="{{ url_for('home') }}">Back to home</a>
+    </div>
 </section>
 {% endblock %}
