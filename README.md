@@ -151,15 +151,36 @@ The student login is designed as a basic demonstration login and is not strong i
 
 1. Open the home page and choose Student Login or Admin Login.
 2. Use the demo admin credentials to access the admin dashboard.
-3. Add books with category and publisher selections.
-4. Issue books to students using the database-backed dropdowns.
-5. Record returns to update book stock and issue history.
+3. Use the admin dashboard sections to add/search student records and manage books.
+4. Search the admin book list by book name, author, category, or publisher.
+   Use each row's Update action to edit book details and authors; stock changes
+   are checked against copies currently issued. Delete is permitted only when
+   the book has no issue history, preserving borrowing records.
+5. Issue books using student and book name/ID autocomplete. Add books using
+   category and publisher autocomplete, and search unreturned issues in the
+   Return Book section. Unavailable books are labelled and cannot be selected
+   for issue; the server checks stock again before recording a loan. The due
+   date is calculated by the server as 14 calendar days after the issue date.
+6. Record returns to update book stock and issue history.
+7. Filter issue records by student ID, issue date, due date, or status, or use
+   autocomplete by choosing Books or Students. Prefix matches appear as you
+   type; selecting a suggestion filters the records by that book or student.
+   Status is calculated from the issue's due date and return date; it is not
+   stored.
 
 The project intentionally keeps the Issue table empty on first seed to make the issue/return cycle visible during the demonstration.
+
+Issue status meanings:
+
+- `Issued`: not returned and the due date is today or later.
+- `Overdue`: not returned and the due date has passed.
+- `Returned (On Time)`: returned on or before the due date.
+- `Returned (Overdue)`: returned after the due date.
 
 ## Testing checklist
 
 - Database connection
+- Admin student listing, exact ID search, and duplicate-ID validation
 - Student ID string handling
 - Student login and invalid-login checks
 - Search by title, author, category and publisher

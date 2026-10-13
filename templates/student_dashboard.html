@@ -45,13 +45,14 @@
                     <th>Author</th>
                     <th>Category</th>
                     <th>Publisher</th>
+                    <th>Availability</th>
                     <th>Available Copies</th>
                     <th>Shelf Location</th>
                 </tr>
             </thead>
             <tbody id="book-results">
                 <tr>
-                    <td colspan="7">Search for a book to see results.</td>
+                    <td colspan="8">Search for a book to see results.</td>
                 </tr>
             </tbody>
         </table>
@@ -118,7 +119,7 @@ function formatDate(dateString) {
 function handleSearchResponse(response, resultsBody) {
     if (!response.ok) {
         resultsBody.innerHTML = '';
-        appendEmptyRow(resultsBody, 7, 'Unable to search books right now.');
+        appendEmptyRow(resultsBody, 8, 'Unable to search books right now.');
         return;
     }
 
@@ -132,14 +133,14 @@ async function searchBooks() {
     const resultsBody = document.getElementById('book-results');
 
     resultsBody.innerHTML = '';
-    appendEmptyRow(resultsBody, 7, 'Searching...');
+    appendEmptyRow(resultsBody, 8, 'Searching...');
 
     const response = await fetch('/api/books/search?search_by=' + encodeURIComponent(searchBy) + '&q=' + encodeURIComponent(keyword));
     const books = await response.json();
 
     resultsBody.innerHTML = '';
     if (!response.ok || !Array.isArray(books) || books.length === 0) {
-        appendEmptyRow(resultsBody, 7, response.ok ? 'No books found.' : (books.message || 'Unable to search books right now.'));
+        appendEmptyRow(resultsBody, 8, response.ok ? 'No books found.' : (books.message || 'Unable to search books right now.'));
         return;
     }
 
@@ -150,6 +151,9 @@ async function searchBooks() {
         row.appendChild(createCell(book.author_name));
         row.appendChild(createCell(book.category));
         row.appendChild(createCell(book.publisher));
+        row.appendChild(createCell(
+            Number(book.available_copy) > 0 ? 'Available' : 'Currently Not Available'
+        ));
         row.appendChild(createCell(book.available_copy));
         row.appendChild(createCell(book.shelf_loc));
         resultsBody.appendChild(row);
